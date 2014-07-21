@@ -3,6 +3,7 @@ App = Ember.Application.create();
 App.WaterfallChartComponent = Ember.Component.extend({
   
   didInsertElement: function(){
+    var datafile=this.get('file');
     var x_low=0;
 var edge=[0];
 var bars=[];
@@ -88,7 +89,7 @@ svg.append("g")
   
 
 
-d3.json("data.json", function(error, root) {
+d3.json(datafile, function(error, root) {
   partition.sort(null).nodes(root);
 
  x_low=0;
@@ -175,8 +176,8 @@ function down(d, i) {
       })
       .attr("y", function(d,i){ 
         if(d.depth==1){
-        //return d.value<0?(y(edge[i+1])+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){return d.value<0?(y(edge[i+1]-d.value)):y(d.value); }
+        //return d.value<0?(y(0)+margin.left+margin.top):0;}
+        if(d.name.indexOf(":last")>0){return d.value<0?(y(0)):y(d.value); }
         return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
         else{
           return d.value<0?y(-d.value):y(d.value);
@@ -202,8 +203,8 @@ function down(d, i) {
       })
       .attr("y", function(d,i){ 
         if(d.depth==1){
-        //return d.value<0?(y(edge[i+1])+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(edge[i+1]-d.value)):y(d.value); }
+        //return d.value<0?(y(0)+margin.left+margin.top):0;}
+        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
         return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
         else{
           return d.value<0?y(-d.value):y(d.value);
@@ -272,8 +273,8 @@ function up(d) {
   enterTransition.select("rect")
         .attr("y", function(d,i){ 
         if(d.depth==1){
-        //return d.value<0?(x(edge[i+1])+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(edge[i+1]-d.value)):y(d.value); }
+        //return d.value<0?(x(0)+margin.left+margin.top):0;}
+        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
 
         return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
         else{
@@ -308,8 +309,8 @@ function up(d) {
       })
       .attr("y", function(d,i){ 
         if(d.depth==1){
-        //return d.value<0?(y(edge[i+1])+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(edge[i+1]-d.value)):y(d.value); }
+        //return d.value<0?(y(0)+margin.left+margin.top):0;}
+        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
 
         return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
         else{
@@ -364,8 +365,8 @@ function bar(d) {
       .attr("width", barHeight)
       .attr("y", function(d,i){ 
         if(d.depth==1){
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(edge[i+1])):y(d.value); }
-        //alert(d.value<0?(height-y(edge[i+1])):height-y(0));
+        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
+        //alert(d.value<0?(height-y(0)):height-y(0));
         return d.value<0?y(d.parent.children[i-1].value):y(d.value);
         }
 
