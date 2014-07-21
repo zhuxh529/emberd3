@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ember Starter Kit</title>
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<style>
+
+#graph {
+    display:inline-block;
+  }
+
+
+#menu {
+  display:inline-block;
+  height: 700px;
+  vertical-align:top;
+  margin-top: 80px;
+  margin-bottom: 100px;
+  margin-left: 10px;
+  font-size: 19px;
+}
+
+text {
+  font: 10px sans-serif;
+}
+
+rect.background {
+  fill: white;
+}
+
+
+
+.axis {
+  shape-rendering: crispEdges;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+}
+
+/*tip1*/
+.bar:hover {
+  fill: orangered ;
+}
+
+
+.d3-tip {
+  line-height: 0.5;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+
+
+</style>
+
+
+<body>
+<div id="graph">
+  </div>
+
+  <script type="text/x-handlebars" data-template-name="application">
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+    {{waterfall-chart}}
+
+
+  </script>
+
+  <script type="text/x-handlebars" id="components/waterfall-chart">
+  </script>
+
+
+
+
+  <script src="js/libs/jquery-1.10.2.js"></script>
+  <script src="js/libs/handlebars-1.1.2.js"></script>
+  <script src="js/libs/ember-1.5.1.js"></script>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+  <script src="js/app.js"></script>
+  <!-- to activate the test runner, add the "?test" query string parameter -->
+  <script src="tests/runner.js"></script>
+</body>
+</html>
