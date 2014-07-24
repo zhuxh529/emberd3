@@ -1,22 +1,143 @@
 App = Ember.Application.create();
 
-App.WaterfallChartComponent = Ember.Component.extend({
-  
-  didInsertElement: function(){
-    var datafile=this.get('file');
-    var x_low=0;
+/* water-fall global constants starts here*/
+
+var x_low=0;
 var edge=[0];
 var bars=[];
-var x1=5; 
 var margin = {top: 40, right: 120, bottom: 15, left: 120},
     width = 960 - margin.left - margin.right,
     height = 700 - margin.top - margin.bottom;
+var duration = 750,
+    delay = 25;
+var max, min;
+max=Number.MAX_VALUE;
+min=Number.MIN_VALUE;
+
+/* water-fall global constants ends here*/
 
 
+App.WaterfallChartComponent = Ember.Component.extend({
+  axis_mode:'value',
+  actions:{
+    goPercent: function(){
+      var whole;
+      edge=[];
+      if(this.get('axis_mode')=="percent") return;
+      this.set('axis_mode', "percent");
 
+      var id = this.$().attr('id');
+      var svg = d3.select("#"+id);
+      
+      var dmin=0;
+      var y = d3.scale.linear()
+        .range([0,height]);
+      
+      svg.select(".enter").selectAll("rect").each(function(d){ 
+        whole= (d.depth==1)?d.parent.children[0].value:d.parent.value;
+        var len=d.parent.children.length;
+        dmin=(d.depth==1)?d.parent.children[len-1].value:0;
 
+      });
+      
+      dmin=dmin>0?0:dmin;
+      y.domain([1.2,dmin/Math.abs(whole)]);
+
+      svg.select(".enter").selectAll("rect")
+      .transition()
+      .duration(duration)
+      .attr("height", function(d,i) {
+       
+        if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)/whole): edge.push(d.value/whole); bars.push(d.value/whole);} 
+         //alert(d.value);
+        return Math.abs(y(d.value/whole)-y(0));
+      })
+      .attr("y", function(d,i){         
+        if(d.depth==1){
+        if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value/whole); }
+        return d.value<0?(y(d.parent.children[i-1].value/whole)):y(d.value/whole);}
+        else{
+          return y(Math.abs(d.value/whole));
+        }
+      });
+      var formatter = d3.format(".0%");
+      var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left")
+        .tickFormat(formatter);
+    
+      svg.selectAll(".y.axis").transition()
+      .duration(duration)
+      .attr("transform", "translate( 0,0)")
+      .call(yAxis);
+
+    },
+    goValue: function(){
+      var whole;
+      edge=[];
+      if(this.get('axis_mode')=="value") return;
+      this.set('axis_mode', "value");
+
+      var id = this.$().attr('id');
+      var svg = d3.select("#"+id);
+      
+      var dmin=0;
+      var dmax=min;
+      var y = d3.scale.linear()
+        .range([0,height]);
+      var depth=0;
+      whole=1;
+      svg.select(".enter").selectAll("rect").each(function(d){ 
+        depth=d.depth;
+        var len=d.parent.children.length;
+        dmin=(d.depth==1)?d.parent.children[len-1].value:0;
+        var tmp=Math.abs(d.value);
+        dmax=dmax<tmp?tmp:dmax;
+      });
+      
+
+      dmin=dmin>0?0:dmin;
+      y.domain([dmax*1.1,dmin]);
+
+      svg.select(".enter").selectAll("rect")
+      .transition()
+      .duration(duration)
+      .attr("height", function(d,i) {
+       
+        if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)/whole): edge.push(d.value/whole); bars.push(d.value/whole);} 
+         //alert(d.value);
+        return Math.abs(y(d.value/whole)-y(0));
+      })
+      .attr("y", function(d,i){         
+        if(d.depth==1){
+        if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value/whole); }
+        return d.value<0?(y(d.parent.children[i-1].value/whole)):y(d.value/whole);}
+        else{
+          return y(Math.abs(d.value)/Math.abs(whole));
+        }
+      });
+      var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left");
+    
+      svg.selectAll(".y.axis").transition()
+      .duration(duration)
+      .attr("transform", "translate( 0,0)")
+      .call(yAxis);
+    }
+
+  },
+
+  didInsertElement: function(){
+
+var datafile=this.get('file');
+var id = this.$().attr('id');
 var y = d3.scale.linear()
-    .range([0, height]);
+    .range([0,height]);
+
+var percent_y=d3.scale.linear()
+    .domain([0,100])
+    .range([0,height]);
 
 var x = d3.scale.linear()
     .range([0, width]);
@@ -29,8 +150,7 @@ var color = d3.scale.ordinal()
 var cost_color=d3.scale.ordinal()
     .range(["#CC3333", "#ccc"]);
 
-var duration = 750,
-    delay = 25;
+
 
 var partition = d3.layout.partition()
     .value(function(d) { return d.size; });
@@ -40,13 +160,15 @@ var yAxis = d3.svg.axis()
     .orient("left");
 
 var xAxis = d3.svg.axis()
-    .scale(y)
+    .scale(x)
     .ticks(0)
     .orient("top");
 
 var width_scale;
+var comp=this;
 
-var svg = d3.select("#graph").append("svg")
+
+var svg = d3.select("#"+id).append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
   .append("g")
@@ -73,6 +195,12 @@ svg.append("g")
   .append("line")
     .attr("y1", "100%");
 
+ if(this.get('axis_mode')=="percent") {
+  //alert(this.get('axis_mode'));
+  var formatter = d3.format(".0%");
+ 
+  //yAxis.tickFormat(formatter);
+ }
 
  var tip = d3.tip()
   .attr('class', 'd3-tip')
@@ -108,8 +236,10 @@ d3.json(datafile, function(error, root) {
 
 
 function down(d, i) {
-
   if (!d.children || this.__transition__) return;
+  comp.set('axis_mode', "value");
+
+
   var end = duration + d.children.length * delay;
 
   // Mark any currently-displayed bars as exiting.
@@ -142,7 +272,6 @@ function down(d, i) {
   }
 
   y.domain([ d3.max(d.children, function(d) { return d.value<0?-d.value:d.value; }),x_low]).nice();
-
   // Update the x-axis.
   svg.selectAll(".y.axis").transition()
       .duration(duration)
@@ -223,7 +352,9 @@ function down(d, i) {
 }
 
 function up(d) {
+
   if (!d.parent || this.__transition__) return;
+  comp.set('axis_mode', "value");
   var end = duration + d.children.length * delay;
 
   // Mark any currently-displayed bars as exiting.
@@ -251,7 +382,7 @@ function up(d) {
   }
   //if(d.)
 
-  y.domain([ d3.max(d.parent.children, function(d) { return d.value<0?-d.value:d.value;}),x_low]).nice();
+ y.domain([ d3.max(d.parent.children, function(d) { return d.value<0?-d.value:d.value;}),x_low]).nice();
 
   // Update the x-axis.
   svg.selectAll(".y.axis").transition()
@@ -391,6 +522,7 @@ function bar(d) {
 
 // A stateful closure for stacking bars horizontally.
 function stack(d,i) {
+
   //var index=i<d.parent.children.length?i+1:d.parent.children-1;
   var x0;
   if(d.name.indexOf(":last")>0 && d.value<0){ x0 =y(d.parent.children[i-1].value);}
@@ -407,15 +539,6 @@ function stack(d,i) {
   };
 }
   }
+  //.observes('axis_mode')
+
 });
-
-
-var DATA = [
-  {age: '<5', population: 2704659},
-  {age: '5-13', population: 4499890},
-  {age: '14-17', population: 2159981},
-  {age: '18-24', population: 3853788},
-  {age: '25-44', population: 14106543},
-  {age: '45-64', population: 8819342},
-  {age: '≥65', population: 612463}
-];

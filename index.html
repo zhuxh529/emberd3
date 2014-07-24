@@ -5,6 +5,11 @@
   <title>Ember Starter Kit</title>
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  
+
 </head>
 <style>
 
@@ -57,7 +62,13 @@ rect.background {
   border-radius: 2px;
 }
 
+#test {
+  margin:10px 0px 40px 60px;
+}
 
+.buttons{
+  margin:50px 0px 0px 0px;
+}
 
 </style>
 
@@ -67,16 +78,24 @@ rect.background {
   </div>
 
   <script type="text/x-handlebars" data-template-name="application">
+
     {{waterfall-chart  file="data.json"}}
-    {{waterfall-chart file="data_1.json"}}
-
-
-
+    {{waterfall-chart  file="data_1.json"}}
+   
   </script>
 
-  <script type="text/x-handlebars" id="components/waterfall-chart">
-  </script>
 
+<script type="text/x-handlebars" id="components/waterfall-chart">
+<div class="container">
+<div class="buttons btn-group">
+  <button type="button" class="btn btn-default btn-success " {{action "goPercent"}}  style="font-size:16px">To Percent</button>
+  <button type="button" class="btn btn-default btn-success " {{action "goValue"}} style="font-size:16px">To Value</button>
+</div>
+ <div id="test">
+ </div>
+</div>
+
+  </script>
 
 
 
