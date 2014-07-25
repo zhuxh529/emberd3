@@ -504,8 +504,7 @@ function bar(d) {
         else{
           return d.value<0?y(-d.value):y(d.value);
         }
-        // return d.value<0?(-x(d.value)+margin.left+margin.top):0;
-         //return -x(5.3)+margin.left+margin.top;
+        
       } );
 
 
