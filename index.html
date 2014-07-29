@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
   <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
   <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.11.0/themes/smoothness/jquery-ui.css">
+
   
 
 </head>
@@ -70,6 +72,11 @@ rect.background {
   margin:50px 0px 0px 0px;
 }
 
+table,td
+{
+border:1px solid black;
+}
+
 </style>
 
 
@@ -85,21 +92,27 @@ rect.background {
   </script>
 
 
-<script type="text/x-handlebars" id="components/waterfall-chart">
+<script type="text/x-handlebars" id="components/waterfall-chart" >
 <div class="container">
 <div class="buttons btn-group">
   <button type="button" class="btn btn-default btn-success " {{action "goPercent"}}  style="font-size:16px">To Percent</button>
   <button type="button" class="btn btn-default btn-success " {{action "goValue"}} style="font-size:16px">To Value</button>
+  <button type="button" class="btn btn-default btn-info " {{action "goif"}} style="font-size:16px">IF-Scenario</button>
+
 </div>
+
+
+
+
  <div id="test">
  </div>
 </div>
 
   </script>
 
-
-
   <script src="js/libs/jquery-1.10.2.js"></script>
+  <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="//code.jquery.com/ui/1.11.0/jquery-ui.js"></script>
   <script src="js/libs/handlebars-1.1.2.js"></script>
   <script src="js/libs/ember-1.5.1.js"></script>
   <script src="http://d3js.org/d3.v3.min.js"></script>

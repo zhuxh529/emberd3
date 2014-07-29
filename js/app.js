@@ -17,6 +17,17 @@ min=Number.MIN_VALUE;
 /* water-fall global constants ends here*/
 
 
+
+App.ApplicationRoute = Ember.Route.extend({
+  model: function(){
+    return { title: "this is title"};
+  }
+
+});
+
+
+
+
 App.WaterfallChartComponent = Ember.Component.extend({
   axis_mode:'value',
   actions:{
@@ -49,7 +60,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
       .attr("height", function(d,i) {
        
         if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)/whole): edge.push(d.value/whole); bars.push(d.value/whole);} 
-         //alert(d.value);
+        //alert(d.value);
         return Math.abs(y(d.value/whole)-y(0));
       })
       .attr("y", function(d,i){         
@@ -124,7 +135,42 @@ App.WaterfallChartComponent = Ember.Component.extend({
       .duration(duration)
       .attr("transform", "translate( 0,0)")
       .call(yAxis);
-    }
+    },
+
+     goif: function(){
+      var newdiv= document.createElement('div');
+      var table = document.createElement("TABLE");
+      var row = table.insertRow(0);
+      var cell1 = row.insertCell(0);
+      var cell2 = row.insertCell(1);
+      var cell3 = row.insertCell(2);
+      var cell4 = row.insertCell(3);
+      cell1.innerHTML = "NEW CELL1 ";
+      cell2.innerHTML = "NEW CELL2 ";
+      cell3.innerHTML = "NEW CELL3 ";
+      cell4.innerHTML = "NEW CELL4 ";
+      cell1.contentEditable = true;
+      newdiv.appendChild(table);
+      var myid=this.$().attr('id')+"pop";
+      newdiv.setAttribute("class",myid);
+      document.getElementById(this.$().attr('id')).appendChild(newdiv);
+      
+      var dia=$( "#"+this.$().attr('id')+" ."+myid ).dialog({
+      autoOpen: false,
+      width: 500,
+      modal: true,
+      show: {
+        effect: "blind",
+        duration: 500
+      },
+      hide: {
+        effect: "explode",
+        duration: 500
+      }
+        });
+      dia.dialog("open");
+      
+     }
 
   },
 
