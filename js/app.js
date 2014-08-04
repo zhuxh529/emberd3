@@ -10,26 +10,25 @@ var margin = {top: 40, right: 120, bottom: 15, left: 120},
     height = 700 - margin.top - margin.bottom;
 var duration = 750,
     delay = 25;
+var barHeight = 75;
+var barGap = 1.4;
 var max, min;
 max=Number.MAX_VALUE;
 min=Number.MIN_VALUE;
 
+ 
+
 /* water-fall global constants ends here*/
-
-
-
-App.ApplicationRoute = Ember.Route.extend({
-  model: function(){
-    return { title: "this is title"};
-  }
-
-});
 
 
 
 
 App.WaterfallChartComponent = Ember.Component.extend({
   axis_mode:'value',
+  barValues:[],
+  y:d3.scale.linear().range([0,height]),
+  depth:0,
+  layer1Data:{},
   actions:{
     goPercent: function(){
       var whole;
@@ -44,8 +43,10 @@ App.WaterfallChartComponent = Ember.Component.extend({
       var y = d3.scale.linear()
         .range([0,height]);
       
+      var dd=svg.select(".enter").selectAll("rect")[0][0].__data__;
+      whole=(dd.depth==1)?svg.select(".enter").selectAll("rect")[0][0].__data__.parent.children[0].value:dd.parent.value;
       svg.select(".enter").selectAll("rect").each(function(d){ 
-        whole= (d.depth==1)?d.parent.children[0].value:d.parent.value;
+        //whole= (d.depth==1)?d.parent.children[0].value:d.parent.value;
         var len=d.parent.children.length;
         dmin=(d.depth==1)?d.parent.children[len-1].value:0;
 
@@ -96,6 +97,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
       var dmax=min;
       var y = d3.scale.linear()
         .range([0,height]);
+      this.set('y',y);
       var depth=0;
       whole=1;
       svg.select(".enter").selectAll("rect").each(function(d){ 
@@ -138,37 +140,163 @@ App.WaterfallChartComponent = Ember.Component.extend({
     },
 
      goif: function(){
-      var newdiv= document.createElement('div');
-      var table = document.createElement("TABLE");
-      var row = table.insertRow(0);
-      var cell1 = row.insertCell(0);
-      var cell2 = row.insertCell(1);
-      var cell3 = row.insertCell(2);
-      var cell4 = row.insertCell(3);
-      cell1.innerHTML = "NEW CELL1 ";
-      cell2.innerHTML = "NEW CELL2 ";
-      cell3.innerHTML = "NEW CELL3 ";
-      cell4.innerHTML = "NEW CELL4 ";
-      cell1.contentEditable = true;
-      newdiv.appendChild(table);
-      var myid=this.$().attr('id')+"pop";
-      newdiv.setAttribute("class",myid);
-      document.getElementById(this.$().attr('id')).appendChild(newdiv);
+      if(this.get('depth')!=0) {alert("if senario only works for depth=0"); return;} 
+       var tip = d3.tip()
+       .attr('class', 'd3-tip')
+       .offset([-10, 0])
+       .html(function(d) {
+        return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value*10000) / 10000+ "</span> <strong style='font-size: 14px;'> Percent:</strong><span style='color:red;font-size: 14px;'>" + "%</span> ";
       
-      var dia=$( "#"+this.$().attr('id')+" ."+myid ).dialog({
+      });
+      
+      var y=this.get('y');
+      var id = this.$().attr('id');
+      var svg = d3.select("#"+id);
+      svg.select("svg").call(tip);
+
+      var test1=svg.select(".enter");
+      var tableDatas=this.get('layer1Data');
+
+      var newdiv= document.createElement('div');
+      newdiv.className="container hero-unit";
+      var table = document.createElement("TABLE");
+      table.className="table table-striped";
+      var row0 = table.insertRow(0);
+      var row1 = table.insertRow(1);
+      var cell0, cell1;
+      for(var i= 0; i< tableDatas.length;i++){
+        cell0=row0.insertCell(i);
+        cell1=row1.insertCell(i);
+        cell0.innerHTML = tableDatas[i].name;
+        cell1.innerHTML = tableDatas[i].value.toFixed(3);
+
+      }
+
+      
+
+      newdiv.appendChild(table);
+      var divId=this.$().attr('id')+"pop";
+      newdiv.id=divId;
+      var tableId=this.$().attr('id')+"table";
+      table.id=tableId;
+      document.getElementById(this.$().attr('id')).appendChild(newdiv);
+      var newbarValues=[];
+      $('.table').editableTableWidget();
+      $('.table td').on('change', function(evt, newValue) {
+        newbarValues=[];
+        for (var c = 0, m = table.rows[1].cells.length; c < m; c++) {
+                newbarValues.push( parseFloat(table.rows[1].cells[c].innerHTML));
+            }
+        var index=evt.currentTarget.cellIndex;
+        var diff=0;
+        if(index==0) diff=(newValue-tableDatas[index].value);
+        else diff=(newValue-tableDatas[index].value);
+        if((tableDatas[index].value>0 && index!=0 )|| index==table.rows[1].cells.length-1) return false;
+
+        for(var i=index+1;i<table.rows[1].cells.length;i++){
+          if(tableDatas[i].value>0 || i==table.rows[1].cells.length-1){
+            newbarValues[i]=newbarValues[i]+diff;
+          }
+        }
+          
+          addBars(index, newValue);
+      });
+
+      var dia=$( "#"+this.$().attr('id')+" #"+divId ).dialog({
       autoOpen: false,
-      width: 500,
+      width: 1000,
       modal: true,
       show: {
         effect: "blind",
         duration: 500
       },
       hide: {
-        effect: "explode",
+        effect: "scale",
         duration: 500
       }
         });
       dia.dialog("open");
+
+
+
+        var on=false;
+        var comp=this;
+      
+      
+
+      function addBars(index, newValue){
+
+      // if(on!=true){ on=true;} 
+      // else {
+      // d3.selectAll(".newbar")
+      // .exit()
+      // .remove(); 
+      // on=false;
+      // return;
+      // }
+
+      if(d3.selectAll(".newbar")[0].length!=0){
+      d3.selectAll(".newbar")
+      .remove();
+      }
+
+
+
+      var mydata=comp.get('barValues');
+      var data=[];
+      var names=[];
+      mydata.forEach(function(d){ names.push(d.name);
+      });
+      newbarValues.forEach(function(d){ data.push(d);});
+      var xx=0;
+
+
+      // mydata[index].name=mydata[index].name+"-new";
+
+
+      test1.selectAll("rect")
+      .data(data, function(d) {return d;})
+      .enter()
+      .append("rect")
+      .attr("class", "newbar")
+      .transition()
+      .duration(duration)
+      .attr("fill-opacity",0.96)
+      .attr("fill", "#e6550d")
+      .attr("x", function(d,i){ return (barHeight*barGap)*(i+0.3);})
+      .attr("height", function(d,i) { 
+        // return x(d.value)<0?-x(d.value):x(d.value);
+        return Math.abs(y(d)-y(0));
+      })
+  .attr("width", 0.85*barHeight)
+  .attr("y", function(d,i){ 
+    //alert("hololl");
+        if(names[i].indexOf(":last")>0){return d<0?y(0):y(d); }
+        return d<0?(y(data[i-1])):y(d);
+
+      });
+
+var tipdata = {
+    name: "",
+    value:0,
+    percent : 0
+};
+
+  test1.selectAll(".newbar")
+  .on("mouseover", function(d,i) { 
+         d3.select(this).style("fill","orangered");
+         tipdata.name=names[i];
+         tipdata.value=d;
+
+         tip.show(tipdata);
+      })
+      .on("mouseout", function(d,i) { 
+        d3.select(this).style("fill","#e6550d");
+        tip.hide();
+
+      });
+}
+
       
      }
 
@@ -188,7 +316,20 @@ var percent_y=d3.scale.linear()
 var x = d3.scale.linear()
     .range([0, width]);
 
-var barHeight = 75;
+
+var tip = d3.tip()
+  .attr('class', 'd3-tip')
+  .offset([-10, 0])
+  .html(function(d) {
+    if(d.depth==1){
+    return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value*10000) / 10000+ "</span> <strong style='font-size: 14px;'> Percent:</strong><span style='color:red;font-size: 14px;'>" +Math.round(d.value/d.parent.children[0].value*1000)/10+ "%</span> ";
+    }
+    else{
+    return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value*10000) / 10000+ "</span> <strong style='font-size: 14px;'> Percent:</strong><span style='color:red;font-size: 14px;'>" +Math.round(d.value/d.parent.value*1000)/10+ "%</span> ";
+
+    }
+  });
+
 
 var color = d3.scale.ordinal()
     .range(["orange", "#ccc"]);
@@ -234,10 +375,12 @@ svg.append("text")
         .text("My Waterfall Graph");
 
 svg.append("g")
-    .attr("class", "x axis");
+    .attr("class", "x axis")
+    .style({ 'stroke-width': '1.5px'});
 
 svg.append("g")
     .attr("class", "y axis")
+    .style({ 'stroke-width': '1.5px'})
   .append("line")
     .attr("y1", "100%");
 
@@ -248,23 +391,13 @@ svg.append("g")
   //yAxis.tickFormat(formatter);
  }
 
- var tip = d3.tip()
-  .attr('class', 'd3-tip')
-  .offset([-10, 0])
-  .html(function(d) {
-    if(d.depth==1){
-    return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value*10000) / 10000+ "</span> <strong style='font-size: 14px;'> Percent:</strong><span style='color:red;font-size: 14px;'>" +Math.round(d.value/d.parent.children[0].value*1000)/10+ "%</span> ";
-    }
-    else{
-      return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value*10000) / 10000+ "</span> <strong style='font-size: 14px;'> Percent:</strong><span style='color:red;font-size: 14px;'>" +Math.round(d.value/d.parent.value*1000)/10+ "%</span> ";
 
-    }
-  });
   
 
 
 d3.json(datafile, function(error, root) {
   partition.sort(null).nodes(root);
+  comp.set('barValues', root.children);
 
  x_low=0;
   
@@ -272,7 +405,7 @@ d3.json(datafile, function(error, root) {
     x_low=x_low<0?x_low:0;
 
   y.domain([ root.value,x_low]).nice();
-
+  comp.set('y', y);
   down(root, 0);
   svg.call(tip);
 
@@ -283,7 +416,12 @@ d3.json(datafile, function(error, root) {
 
 function down(d, i) {
   if (!d.children || this.__transition__) return;
+  comp.set('depth',d.depth);
   comp.set('axis_mode', "value");
+
+  if(d.depth==0){
+    comp.set('layer1Data',d.children);
+  }
 
 
   var end = duration + d.children.length * delay;
@@ -318,6 +456,7 @@ function down(d, i) {
   }
 
   y.domain([ d3.max(d.children, function(d) { return d.value<0?-d.value:d.value; }),x_low]).nice();
+  comp.set('y', y);
   // Update the x-axis.
   svg.selectAll(".y.axis").transition()
       .duration(duration)
@@ -335,7 +474,7 @@ function down(d, i) {
   var enterTransition = enter.transition()
       .duration(duration)
       .delay(function(d, i) { return i * delay; })
-      .attr("transform", function(d, i) { return "translate(" + barHeight * i * 1.2 + ",0)"; });
+      .attr("transform", function(d, i) { return "translate(" + barHeight * i * barGap + ",0)"; });
 
   // Transition entering text.
   enterTransition.select("text")
@@ -400,7 +539,13 @@ function down(d, i) {
 function up(d) {
 
   if (!d.parent || this.__transition__) return;
+  comp.set('depth',d.depth);
   comp.set('axis_mode', "value");
+  if(d.depth==0){
+    comp.set('layer1Data',d.children);
+  }
+
+
   var end = duration + d.children.length * delay;
 
   // Mark any currently-displayed bars as exiting.
@@ -409,7 +554,7 @@ function up(d) {
 
   // Enter the new bars for the clicked-on data's parent.
   var enter = bar(d.parent)
-      .attr("transform", function(d, i) { return "translate(" + barHeight * i * 1.2 + ",0)"; })
+      .attr("transform", function(d, i) { return "translate(" + barHeight * i * barGap + ",0)"; })
       .style("opacity", 1e-6);
 
   // Color the bars as appropriate.
@@ -577,7 +722,7 @@ function stack(d,i) {
   var depth=1;
   return function(d) {
     //x0=(d.depth==depth?x0;0);
-    var tx = "translate(" +barHeight * i * 1.2 + "," + x0 + ")";
+    var tx = "translate(" +barHeight * i * barGap + "," + x0 + ")";
     x0 += d.value<0?-y(d.value):y(d.value);
     // alert(x0);
     return tx;
