@@ -191,7 +191,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
         var diff=0;
         if(index==0) diff=(newValue-tableDatas[index].value);
         else diff=(newValue-tableDatas[index].value);
-        if((tableDatas[index].value>0 && index!=0 )|| index==table.rows[1].cells.length-1) return false;
+        if((tableDatas[index].value>0 && index!=0 )|| index==table.rows[1].cells.length-1) {alert("You can't modify cumulated bars Dude XD");return false;}
 
         for(var i=index+1;i<table.rows[1].cells.length;i++){
           if(tableDatas[i].value>0 || i==table.rows[1].cells.length-1){
@@ -255,7 +255,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
 
 
       test1.selectAll("rect")
-      .data(data, function(d) {return d;})
+      .data(data, function(d) {return d+ Math.random()*0.01;})
       .enter()
       .append("rect")
       .attr("class", "newbar")
