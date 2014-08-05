@@ -30,6 +30,19 @@ App.WaterfallChartComponent = Ember.Component.extend({
   depth:0,
   layer1Data:{},
   actions:{
+    goClean: function(){
+      if(d3.selectAll(".newbar")[0].length!=0){
+      d3.selectAll(".newbar")
+      .remove();
+      }
+      if(this.get('axis_mode')=='percent') this.send('goValue');
+    
+    },
+
+    goTest: function(){
+      alert("hello Dude");
+    },
+
     goPercent: function(){
       var whole;
       edge=[];
@@ -148,7 +161,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
         return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value*10000) / 10000+ "</span> <strong style='font-size: 14px;'> Percent:</strong><span style='color:red;font-size: 14px;'>" + "%</span> ";
       
       });
-      
+      var comp=this;
       var y=this.get('y');
       var id = this.$().attr('id');
       var svg = d3.select("#"+id);
@@ -181,24 +194,71 @@ App.WaterfallChartComponent = Ember.Component.extend({
       table.id=tableId;
       document.getElementById(this.$().attr('id')).appendChild(newdiv);
       var newbarValues=[];
-      $('.table').editableTableWidget();
-      $('.table td').on('change', function(evt, newValue) {
-        newbarValues=[];
-        for (var c = 0, m = table.rows[1].cells.length; c < m; c++) {
+      for (var c = 0, m = table.rows[1].cells.length; c < m; c++) {
                 newbarValues.push( parseFloat(table.rows[1].cells[c].innerHTML));
             }
+      $('.table').editableTableWidget();
+      $('.table td').on('change', function(evt, newValue) {
+        
+        
         var index=evt.currentTarget.cellIndex;
+        newbarValues[index]=newValue;
         var diff=0;
         if(index==0) diff=(newValue-tableDatas[index].value);
         else diff=(newValue-tableDatas[index].value);
         if((tableDatas[index].value>0 && index!=0 )|| index==table.rows[1].cells.length-1) {alert("You can't modify cumulated bars Dude XD");return false;}
 
-        for(var i=index+1;i<table.rows[1].cells.length;i++){
+        for(var i=index;i<table.rows[1].cells.length;i++){
           if(tableDatas[i].value>0 || i==table.rows[1].cells.length-1){
             newbarValues[i]=newbarValues[i]+diff;
           }
         }
-          
+
+      //redraw existing bars to new domain
+        var ymin=max;
+        var ymax=min;
+        for(var i=0;i<newbarValues.length;i++){
+          if(newbarValues[i]>ymax) ymax=newbarValues[i];
+          if(tableDatas[i].value>0 && newbarValues[i]<0) ymin=newbarValues[i];
+        }
+        var temp=newbarValues[newbarValues.length-1];
+        ymin=ymin<temp?ymin:temp;
+        ymin=ymin<0?ymin:0;
+        y.domain([ymax,ymin]).nice();
+
+        var id = comp.$().attr('id');
+        var svg = d3.select("#"+id);
+
+        svg.select(".enter").selectAll("rect")
+      .transition()
+      .duration(duration)
+      .attr("height", function(d,i) {
+       
+        if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)): edge.push(d.value); bars.push(d.value);} 
+        //alert(d.value);
+        return Math.abs(y(d.value)-y(0));
+      })
+      .attr("y", function(d,i){         
+        if(d.depth==1){
+        if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value); }
+        return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
+        else{
+          return y(Math.abs(d.value));
+        }
+      });
+
+      var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left")
+    
+      svg.selectAll(".y.axis").transition()
+      .duration(duration)
+      .attr("transform", "translate( 0,0)")
+      .call(yAxis);
+
+
+
+        //add a new layer of 'if-senario bars'
           addBars(index, newValue);
       });
 
@@ -219,21 +279,10 @@ App.WaterfallChartComponent = Ember.Component.extend({
 
 
 
-        var on=false;
-        var comp=this;
       
       
 
       function addBars(index, newValue){
-
-      // if(on!=true){ on=true;} 
-      // else {
-      // d3.selectAll(".newbar")
-      // .exit()
-      // .remove(); 
-      // on=false;
-      // return;
-      // }
 
       if(d3.selectAll(".newbar")[0].length!=0){
       d3.selectAll(".newbar")
@@ -271,7 +320,9 @@ App.WaterfallChartComponent = Ember.Component.extend({
   .attr("width", 0.85*barHeight)
   .attr("y", function(d,i){ 
     //alert("hololl");
-        if(names[i].indexOf(":last")>0){return d<0?y(0):y(d); }
+        // if(names[i].indexOf(":last")>0){return d<0?y(0):y(d); }
+        if(i==data.length-1){return d<0?y(0):y(d); }
+
         return d<0?(y(data[i-1])):y(d);
 
       });
@@ -280,7 +331,7 @@ var tipdata = {
     name: "",
     value:0,
     percent : 0
-};
+};  
 
   test1.selectAll(".newbar")
   .on("mouseover", function(d,i) { 
@@ -367,12 +418,12 @@ svg.append("rect")
     .attr("height", height)
     .on("click", up);
 
-svg.append("text")
-        .attr("x", (width / 2))             
-        .attr("y", 0 - (margin.top / 2))
-        .attr("text-anchor", "middle")  
-        .style("font-size", "19px") 
-        .text("My Waterfall Graph");
+// svg.append("text")
+//         .attr("x", (width / 2))             
+//         .attr("y", 0 - (margin.top / 2))
+//         .attr("text-anchor", "middle")  
+//         .style("font-size", "19px") 
+//         .text("My Waterfall Graph");
 
 svg.append("g")
     .attr("class", "x axis")
