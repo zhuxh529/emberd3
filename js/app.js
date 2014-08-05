@@ -35,7 +35,10 @@ App.WaterfallChartComponent = Ember.Component.extend({
       d3.selectAll(".newbar")
       .remove();
       }
-      if(this.get('axis_mode')=='percent') this.send('goValue');
+      this.set('axis_mode','percent'); /*make it can actually go through goValue
+       function, axis_mode will be changed back to 'value' in goValue fn.
+      */
+      this.send('goValue');
     
     },
 
@@ -198,14 +201,15 @@ App.WaterfallChartComponent = Ember.Component.extend({
                 newbarValues.push( parseFloat(table.rows[1].cells[c].innerHTML));
             }
       $('.table').editableTableWidget();
+
+
+      //table change triggered function, very important here~
       $('.table td').on('change', function(evt, newValue) {
-        
-        
         var index=evt.currentTarget.cellIndex;
-        newbarValues[index]=newValue;
+       
         var diff=0;
-        if(index==0) diff=(newValue-tableDatas[index].value);
-        else diff=(newValue-tableDatas[index].value);
+        if(index==0) diff=parseFloat(newValue-newbarValues[index]);
+        else diff=parseFloat(newValue-newbarValues[index]);
         if((tableDatas[index].value>0 && index!=0 )|| index==table.rows[1].cells.length-1) {alert("You can't modify cumulated bars Dude XD");return false;}
 
         for(var i=index;i<table.rows[1].cells.length;i++){
@@ -213,12 +217,14 @@ App.WaterfallChartComponent = Ember.Component.extend({
             newbarValues[i]=newbarValues[i]+diff;
           }
         }
+        newbarValues[index]=newValue;
 
       //redraw existing bars to new domain
         var ymin=max;
         var ymax=min;
         for(var i=0;i<newbarValues.length;i++){
           if(newbarValues[i]>ymax) ymax=newbarValues[i];
+          if(parseFloat(tableDatas[i].value)>ymax) ymax=parseFloat(tableDatas[i].value);
           if(tableDatas[i].value>0 && newbarValues[i]<0) ymin=newbarValues[i];
         }
         var temp=newbarValues[newbarValues.length-1];
@@ -230,9 +236,9 @@ App.WaterfallChartComponent = Ember.Component.extend({
         var svg = d3.select("#"+id);
 
         svg.select(".enter").selectAll("rect")
-      .transition()
-      .duration(duration)
-      .attr("height", function(d,i) {
+        .transition()
+        .duration(duration)
+        .attr("height", function(d,i) {
        
         if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)): edge.push(d.value); bars.push(d.value);} 
         //alert(d.value);
@@ -322,7 +328,8 @@ App.WaterfallChartComponent = Ember.Component.extend({
     //alert("hololl");
         // if(names[i].indexOf(":last")>0){return d<0?y(0):y(d); }
         if(i==data.length-1){return d<0?y(0):y(d); }
-
+        var a=parseFloat(tableDatas[i].value);
+        if(a>0 && d<0) return y(0);
         return d<0?(y(data[i-1])):y(d);
 
       });
