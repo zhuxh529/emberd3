@@ -10,7 +10,6 @@ var margin = {top: 40, right: 120, bottom: 15, left: 120},
     height = 700 - margin.top - margin.bottom;
 var duration = 750,
     delay = 25;
-var barHeight = 75;
 var barGap = 1.4;
 var max, min;
 max=Number.MAX_VALUE;
@@ -35,8 +34,8 @@ App.WaterfallChartComponent = Ember.Component.extend({
       d3.selectAll(".newbar")
       .remove();
       }
-      this.set('axis_mode','percent'); /*make it can actually go through goValue
-       function, axis_mode will be changed back to 'value' in goValue fn.
+      this.set('axis_mode','percent'); /*so that it can actually go through goValue
+       function; axis_mode will be changed back to 'value' in goValue fn.
       */
       this.send('goValue');
     
@@ -161,7 +160,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
        .attr('class', 'd3-tip')
        .offset([-10, 0])
        .html(function(d) {
-        return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value*10000) / 10000+ "</span> <strong style='font-size: 14px;'> Percent:</strong><span style='color:red;font-size: 14px;'>" + "%</span> ";
+        return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value)+ "</span> <strong style='font-size: 14px;'> Percent: </strong><span style='color:red;font-size: 14px;'><span style='color:red;font-size: 14px;'>" +d.percent.toFixed(2)+ "%</span> ";
       
       });
       var comp=this;
@@ -283,13 +282,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
         });
       dia.dialog("open");
 
-
-
-      
-      
-
-      function addBars(index, newValue){
-
+        function addBars(index, newValue){
       if(d3.selectAll(".newbar")[0].length!=0){
       d3.selectAll(".newbar")
       .remove();
@@ -318,12 +311,12 @@ App.WaterfallChartComponent = Ember.Component.extend({
       .duration(duration)
       .attr("fill-opacity",0.96)
       .attr("fill", "#e6550d")
-      .attr("x", function(d,i){ return (barHeight*barGap)*(i+0.3);})
+      .attr("x", function(d,i){ return (barWidth*barGap)*(i+0.3);})
       .attr("height", function(d,i) { 
         // return x(d.value)<0?-x(d.value):x(d.value);
         return Math.abs(y(d)-y(0));
       })
-  .attr("width", 0.85*barHeight)
+  .attr("width", 0.85*barWidth)
   .attr("y", function(d,i){ 
     //alert("hololl");
         // if(names[i].indexOf(":last")>0){return d<0?y(0):y(d); }
@@ -345,6 +338,7 @@ var tipdata = {
          d3.select(this).style("fill","orangered");
          tipdata.name=names[i];
          tipdata.value=d;
+         tipdata.percent=100*d/data[0];
 
          tip.show(tipdata);
       })
@@ -353,15 +347,12 @@ var tipdata = {
         tip.hide();
 
       });
-}
-
-      
+      }
      }
-
   },
 
   didInsertElement: function(){
-
+var barWidth = 75;
 var datafile=this.get('file');
 var id = this.$().attr('id');
 var y = d3.scale.linear()
@@ -456,8 +447,11 @@ svg.append("g")
 d3.json(datafile, function(error, root) {
   partition.sort(null).nodes(root);
   comp.set('barValues', root.children);
-
- x_low=0;
+  
+  var l=traverseNode(root);
+  barWidth=width/(barGap*1.06*l);
+  barWidth=barWidth>100?100:barWidth;
+  x_low=0;
   
     x_low=root.children[root.children.length-1].value;
     x_low=x_low<0?x_low:0;
@@ -469,6 +463,24 @@ d3.json(datafile, function(error, root) {
 
 });
 
+
+function traverseNode(node){
+  //to get the max children.length
+  if(!node.children) return 1;
+  var maxLength=0;
+ 
+  for(var nodes=0;nodes< node.children.length;nodes++){
+    if(datafile=="data_2.json") {
+      var aa=1;
+    }
+    var nn=traverseNode(node.children[nodes]);
+    maxLength=nn>maxLength?nn:maxLength;
+  }
+
+  var l=node.children.length
+  return l>maxLength?l:maxLength;
+
+}
 
 
 
@@ -532,7 +544,7 @@ function down(d, i) {
   var enterTransition = enter.transition()
       .duration(duration)
       .delay(function(d, i) { return i * delay; })
-      .attr("transform", function(d, i) { return "translate(" + barHeight * i * barGap + ",0)"; });
+      .attr("transform", function(d, i) { return "translate(" + barWidth * i * barGap + ",0)"; });
 
   // Transition entering text.
   enterTransition.select("text")
@@ -546,17 +558,7 @@ function down(d, i) {
          //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("y", function(d,i){ 
-        if(d.depth==1){
-        //return d.value<0?(y(0)+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){return d.value<0?(y(0)):y(d.value); }
-        return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
-        else{
-          return d.value<0?y(-d.value):y(d.value);
-        }
-        // return d.value<0?(-x(d.value)+margin.left+margin.top):0;
-         //return -x(5.3)+margin.left+margin.top;
-      } )
+      .attr("y", sety())
       .style("fill",  function(d) { return (d.depth==1 && d.value<0)?cost_color(true):color(!!d.children); });
 
   // Transition exiting bars to fade out.
@@ -573,22 +575,12 @@ function down(d, i) {
          //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("y", function(d,i){ 
-        if(d.depth==1){
-        //return d.value<0?(y(0)+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
-        return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
-        else{
-          return d.value<0?y(-d.value):y(d.value);
-        // return d.value<0?(-x(d.value)+margin.left+margin.top):0;
-         //return -x(5.3)+margin.left+margin.top;
-       }
-      } );
+      .attr("y", sety());
 
   // Rebind the current node to the background.
   svg.select(".background")
       .datum(d)
-    .transition()
+      .transition()
       .duration(end);
 
   d.index = i;
@@ -597,7 +589,7 @@ function down(d, i) {
 function up(d) {
 
   if (!d.parent || this.__transition__) return;
-  comp.set('depth',d.depth);
+  comp.set('depth',d.depth-1);
   comp.set('axis_mode', "value");
   if(d.depth==0){
     comp.set('layer1Data',d.children);
@@ -612,7 +604,7 @@ function up(d) {
 
   // Enter the new bars for the clicked-on data's parent.
   var enter = bar(d.parent)
-      .attr("transform", function(d, i) { return "translate(" + barHeight * i * barGap + ",0)"; })
+      .attr("transform", function(d, i) { return "translate(" + barWidth * i * barGap + ",0)"; })
       .style("opacity", 1e-6);
 
   // Color the bars as appropriate.
@@ -651,16 +643,7 @@ function up(d) {
   // Transition entering rects to the new x-scale.
   // When the entering parent rect is done, make it visible!
   enterTransition.select("rect")
-        .attr("y", function(d,i){ 
-        if(d.depth==1){
-        //return d.value<0?(x(0)+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
-
-        return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
-        else{
-          return d.value<0?y(-d.value):y(d.value);
-        }
-      })
+        .attr("y", sety())
      .attr("height", function(d,i) { 
         // return x(d.value)<0?-x(d.value):x(d.value);
         if(d.depth==1){ d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value); bars.push(d.value);} 
@@ -687,18 +670,7 @@ function up(d) {
          //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("y", function(d,i){ 
-        if(d.depth==1){
-        //return d.value<0?(y(0)+margin.left+margin.top):0;}
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
-
-        return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
-        else{
-          return d.value<0?y(-d.value):y(d.value);
-        }
-        // return d.value<0?(-x(d.value)+margin.left+margin.top):0;
-         //return -x(5.3)+margin.left+margin.top;
-      } )
+      .attr("y", sety() )
       .style("fill", function(d){return (d.depth==1 && d.value<0)?cost_color(true):color(true);});
 
   // Remove exiting nodes when the last child has finished transitioning.
@@ -728,7 +700,7 @@ function bar(d) {
 
   bar.append("text")
       .attr("y", height+10)
-      .attr("x", 4*barHeight/5)
+      .attr("x", 4*barWidth/5)
       .attr("dy", ".35em")
       .style("text-anchor", "end")
       .text(function(d) { return d.name.split(":")[0]; });
@@ -742,19 +714,8 @@ function bar(d) {
          //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("width", barHeight)
-      .attr("y", function(d,i){ 
-        if(d.depth==1){
-        if(d.name.indexOf(":last")>0){ return d.value<0?(y(0)):y(d.value); }
-        //alert(d.value<0?(height-y(0)):height-y(0));
-        return d.value<0?y(d.parent.children[i-1].value):y(d.value);
-        }
-
-        else{
-          return d.value<0?y(-d.value):y(d.value);
-        }
-        
-      } );
+      .attr("width", barWidth)
+      .attr("y", sety());
 
 
 
@@ -762,30 +723,108 @@ function bar(d) {
   // bar.append("rect")
   //     .attr("width", function(d,i) { d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value);
   //      return x(d.value)<0?-x(d.value):x(d.value);})
-  //     .attr("height", barHeight)
+  //     .attr("height", barWidth)
   //     .attr("x", function(d,i){ alert(edge[i]); return d.value<0?x(5.3):0;} );
 
   return bar;
 }
 
 // A stateful closure for stacking bars horizontally.
-function stack(d,i) {
+function stack(data,i) {
 
-  //var index=i<d.parent.children.length?i+1:d.parent.children-1;
-  var x0;
-  if(d.name.indexOf(":last")>0 && d.value<0){ x0 =y(d.parent.children[i-1].value);}
-  else{
-  x0 =y(d.parent&&d.value<0?d.parent.children[i+1].value:0);
+  var y0=0;
+  var tmp=0;
+  var y_offset=0;
+  if(data.parent && data.depth==1) {
+      y_offset=data.value>0?0:y(data.parent.children[i-1].value+data.value)-y(0); // if objects in data file have no 'type' attribute
+      
+      //the following shows the situation when onjects in data file have 'type' attribute
+      if(data.type!=null){
+        if(data.type=="acc"){
+          y_offset=0;
+        }
+        else if(data.type=="dec"){
+          y_offset=y(data.parent.children[i-1].value+data.value)-y(0);
+        }
+        else if(data.type=="inc"){
+          y_offset=y(data.parent.children[i-1].value)-y(0);
+        }
+
+      }
+
+    if(i==data.parent.children.length-1 ){
+      y_offset=data.value>0?0:-y(-data.value)+y(0);
+    }
+    //y_offset=data.value>0?0:y(data.parent.children[i-1].value+data.value)-y(0);
   }
-  var depth=1;
+
+  if(data.depth>1){
+    y_offset=0;
+  }
+
+
+  var dataV=data.value>0?data.value:-data.value;
+  var uplimit=dataV;
+  var downlimit=0;
   return function(d) {
-    //x0=(d.depth==depth?x0;0);
-    var tx = "translate(" +barHeight * i * barGap + "," + x0 + ")";
-    x0 += d.value<0?-y(d.value):y(d.value);
-    // alert(x0);
+    var dV=d.value>0?d.value:-d.value;
+    
+
+    downlimit=uplimit-dV;
+    y0=y(dataV)-y(dV)-tmp+y_offset;
+    var tx = "translate(" +barWidth * i * barGap + "," + y0  + ")";
+    tmp=tmp+y(uplimit)-y(downlimit);
+    uplimit=downlimit;
+    //y0 -=y(d.value);
+    if(d.depth>1){
+      var a=1;  
+    //alert(d.depth);
+    //alert(tx+"   "+d.value+"    "+y.range());
+    //alert(tmp);
+    }
     return tx;
   };
 }
+
+var cumulated=[];
+
+function sety(){
+  cumulated=[];
+  var index=0;
+  return function(d,i){ 
+        if(d.depth==1){
+        if(i==0) cumulated.push(d.value);
+        //return d.value<0?(y(0)+margin.left+margin.top):0;}
+        if(i==d.parent.children.length-1){return d.value<0?(y(0)):y(d.value); }
+        
+        if(d.type==null){
+          return d.value<0?y(d.parent.children[i-1].value):y(d.value);
+          }
+        else{
+              if(d.type=="acc"){
+                return y(d.value);
+              }
+              else if(d.type=="dec"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value);
+                else {return y(cumulated[len]);}
+              }
+              else if(d.type=="inc"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value+d.value);
+                else {return y(cumulated[len]+d.value);}
+              }
+              else{
+                alert("data format error: type is wrong dude XD");
+              }
+            }
+        }
+        else{
+          return d.value<0?y(-d.value):y(d.value);
+        }
+      }
+}
+
   }
   //.observes('axis_mode')
 

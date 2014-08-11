@@ -78,12 +78,27 @@
    ]
   },
   {
-   "name": "Pocket Margin", "type": "acc",
+   "name": "Pocket Margin", "type": "inc",
    "children": [
-    {"name": "IScaleMap", "size": 0.42},
-    {"name": "Scale", "size": 1.21},
-    {"name": "ScaleType", "size": 0.33},
-    {"name": "TimeScale", "size": 1.01}
+    {"name": "IScaleMap", "size": 0.1},
+    {"name": "Scale", "size": 0.1},
+    {"name": "ScaleType", "size": 0.1},
+    {"name": "TimeScale", "size": 0.1}
+   ]
+  },
+
+  {
+   "name": "test1", "type": "dec",
+   "children": [
+    {"name": "test1-1", "size": -0.34},
+    {"name": "test1-2", "size": -1.37}
+   ]
+  },
+  {
+   "name": "test2", "type": "acc",
+   "children": [
+    {"name": "test2-1", "size": 1.47}
+
    ]
   }
  ]
