@@ -391,22 +391,19 @@ App.WaterfallChartComponent = Ember.Component.extend({
           }
         else{
               if(data1[i].type=="acc"){
-                // firstCumulated.push(d);
                 return d<0?(y(0)):y(d);
               }
               else if(data1[i].type=="dec"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d);
-                if(data1[i-1].type=="acc" ) return y(data[i-1]);
+                if(data1[i-1].type=="acc" ) return d<=0?y(data[i-1]):y(data[i-1]+d);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d);
-                  return y(cumulated[len]);}
+                  return d<=0?y(cumulated[len]):y(cumulated[len]+d);}
               }
               else if(data1[i].type=="inc"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d);
-                if(data1[i-1].type=="acc" ) return y(data[i-1]+d);
+                if(data1[i-1].type=="acc" ) return d>=0?y(data[i-1]+d):y(data[i-1]);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d);
-                  return y(cumulated[len]+d);}
+                  return d>=0?y(cumulated[len]+d):y(cumulated[len]);}
               }
               else{
                 alert("data format error: type is wrong dude XD");
