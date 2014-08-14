@@ -28,6 +28,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
   y:d3.scale.linear().range([0,height]),
   depth:0,
   layer1Data:{},
+  barWidth:0,
   actions:{
     goClean: function(){
       if(d3.selectAll(".newbar")[0].length!=0){
@@ -160,10 +161,16 @@ App.WaterfallChartComponent = Ember.Component.extend({
        .attr('class', 'd3-tip')
        .offset([-10, 0])
        .html(function(d) {
-        return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + Math.round(d.value)+ "</span> <strong style='font-size: 14px;'> Percent: </strong><span style='color:red;font-size: 14px;'><span style='color:red;font-size: 14px;'>" +d.percent.toFixed(2)+ "%</span> ";
+        return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + d.value.toFixed(3)+ "</span> <strong style='font-size: 14px;'> Percent: </strong><span style='color:red;font-size: 14px;'><span style='color:red;font-size: 14px;'>" +d.percent.toFixed(2)+ "%</span> ";
       
       });
       var comp=this;
+      var existedCumulative=[];
+      var cumulated=[];
+
+      var barWidth=comp.get('barWidth');
+      var barData=comp.get('barValues');
+
       var y=this.get('y');
       var id = this.$().attr('id');
       var svg = d3.select("#"+id);
@@ -209,10 +216,11 @@ App.WaterfallChartComponent = Ember.Component.extend({
         var diff=0;
         if(index==0) diff=parseFloat(newValue-newbarValues[index]);
         else diff=parseFloat(newValue-newbarValues[index]);
-        if((tableDatas[index].value>0 && index!=0 )|| index==table.rows[1].cells.length-1) {alert("You can't modify cumulated bars Dude XD");return false;}
-
+        if((tableDatas[index].type=="acc" && index!=0 )|| index==table.rows[1].cells.length-1) {alert("You can't modify cumulated bars Dude XD");return false;}
+        existedCumulative=[];
+        cumulated=[];
         for(var i=index;i<table.rows[1].cells.length;i++){
-          if(tableDatas[i].value>0 || i==table.rows[1].cells.length-1){
+          if(barData[i].type=="acc"){
             newbarValues[i]=newbarValues[i]+diff;
           }
         }
@@ -243,13 +251,50 @@ App.WaterfallChartComponent = Ember.Component.extend({
         //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("y", function(d,i){         
+      .attr("y", function(d,i){
+
+        var firstCumulated=[];
+        var data=d;
+         if(data.depth==0) {firstCumulated=[];}
+
+
+
+  var index=0;
         if(d.depth==1){
-        if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value); }
-        return d.value<0?(y(d.parent.children[i-1].value)):y(d.value);}
+        if(i==0) existedCumulative.push(d.value);
+        if(d.type==null){
+          return d.value<0?y(d.parent.children[i-1].value):y(d.value);
+          }
         else{
-          return y(Math.abs(d.value));
+              if(d.type=="acc"){
+                // firstexistedCumulative.push(d.value);
+                return d.value<0?(y(0)):y(d.value);
+              }
+              else if(d.type=="dec"){
+                var len=existedCumulative.length-1; existedCumulative.push(existedCumulative[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value);
+                else {
+                  // firstexistedCumulative.push(firstexistedCumulative[firstexistedCumulative.length-1]+d.value);
+                  return y(existedCumulative[len]);}
+              }
+              else if(d.type=="inc"){
+                var len=existedCumulative.length-1; existedCumulative.push(existedCumulative[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value+d.value);
+                else {
+                  // firstexistedCumulative.push(firstexistedCumulative[firstexistedCumulative.length-1]+d.value);
+                  return y(existedCumulative[len]+d.value);}
+              }
+              else{
+                alert("data format error: type is wrong dude XD");
+              }
+            }
         }
+        else{
+          return d.value<0?y(-d.value):y(d.value);
+        }
+      
+
+
       });
 
       var yAxis = d3.svg.axis()
@@ -282,7 +327,11 @@ App.WaterfallChartComponent = Ember.Component.extend({
         });
       dia.dialog("open");
 
+
+
+
         function addBars(index, newValue){
+
       if(d3.selectAll(".newbar")[0].length!=0){
       d3.selectAll(".newbar")
       .remove();
@@ -290,17 +339,19 @@ App.WaterfallChartComponent = Ember.Component.extend({
 
 
 
-      var mydata=comp.get('barValues');
+      //hard to clone barData to new ones..
+      //var newdata=jQuery.extend({}, barData);
+
       var data=[];
       var names=[];
-      mydata.forEach(function(d){ names.push(d.name);
+      var types=[];
+      barData.forEach(function(d){ names.push(d.name);types.push(d.type);
       });
-      newbarValues.forEach(function(d){ data.push(d);});
+      newbarValues.forEach(function(d){ data.push(parseFloat(d));});
       var xx=0;
 
 
-      // mydata[index].name=mydata[index].name+"-new";
-
+      // barData[index].name=barData[index].name+"-new";
 
       test1.selectAll("rect")
       .data(data, function(d) {return d+ Math.random()*0.01;})
@@ -320,11 +371,48 @@ App.WaterfallChartComponent = Ember.Component.extend({
   .attr("y", function(d,i){ 
     //alert("hololl");
         // if(names[i].indexOf(":last")>0){return d<0?y(0):y(d); }
-        if(i==data.length-1){return d<0?y(0):y(d); }
-        var a=parseFloat(tableDatas[i].value);
-        if(a>0 && d<0) return y(0);
-        return d<0?(y(data[i-1])):y(d);
 
+
+        // if(i==data.length-1){return d<0?y(0):y(d); }
+        // var a=parseFloat(tableDatas[i].value);
+        // if(a>0 && d<0) return y(0); 
+        // return d<0?(y(data[i-1])):y(d);
+
+
+        var firstCumulated=[];
+        var data1=barData;
+
+ 
+  var index=0; 
+        if(data1[i].depth==1){
+        if(i==0) cumulated.push(d);
+        if(data1[i].type==null){
+          return d<0?y(data1[i-1].value):y(d);
+          }
+        else{
+              if(data1[i].type=="acc"){
+                // firstCumulated.push(d);
+                return d<0?(y(0)):y(d);
+              }
+              else if(data1[i].type=="dec"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d);
+                if(data1[i-1].type=="acc" ) return y(data[i-1]);
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d);
+                  return y(cumulated[len]);}
+              }
+              else if(data1[i].type=="inc"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d);
+                if(data1[i-1].type=="acc" ) return y(data[i-1]+d);
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d);
+                  return y(cumulated[len]+d);}
+              }
+              else{
+                alert("data format error: type is wrong dude XD");
+              }
+            }
+        }
       });
 
 var tipdata = {
@@ -348,10 +436,18 @@ var tipdata = {
 
       });
       }
+
+
+
+
+
+
      }
   },
 
   didInsertElement: function(){
+var cumulated=[];
+var firstCumulated=[];
 var barWidth = 75;
 var datafile=this.get('file');
 var id = this.$().attr('id');
@@ -446,17 +542,20 @@ svg.append("g")
 
 d3.json(datafile, function(error, root) {
   partition.sort(null).nodes(root);
-  comp.set('barValues', root.children);
+  
   
   var l=traverseNode(root);
   barWidth=width/(barGap*1.06*l);
   barWidth=barWidth>100?100:barWidth;
+  
   x_low=0;
   
     x_low=root.children[root.children.length-1].value;
     x_low=x_low<0?x_low:0;
 
   y.domain([ root.value,x_low]).nice();
+  comp.set('barValues', root.children);
+  comp.set('barWidth', barWidth);
   comp.set('y', y);
   down(root, 0);
   svg.call(tip);
@@ -558,7 +657,7 @@ function down(d, i) {
          //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("y", sety())
+      .attr("y", sety(d))
       .style("fill",  function(d) { return (d.depth==1 && d.value<0)?cost_color(true):color(!!d.children); });
 
   // Transition exiting bars to fade out.
@@ -575,7 +674,7 @@ function down(d, i) {
          //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("y", sety());
+      .attr("y", sety(d));
 
   // Rebind the current node to the background.
   svg.select(".background")
@@ -643,7 +742,7 @@ function up(d) {
   // Transition entering rects to the new x-scale.
   // When the entering parent rect is done, make it visible!
   enterTransition.select("rect")
-        .attr("y", sety())
+        .attr("y", sety(d))
      .attr("height", function(d,i) { 
         // return x(d.value)<0?-x(d.value):x(d.value);
         if(d.depth==1){ d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value); bars.push(d.value);} 
@@ -670,7 +769,7 @@ function up(d) {
          //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
-      .attr("y", sety() )
+      .attr("y", sety(d) )
       .style("fill", function(d){return (d.depth==1 && d.value<0)?cost_color(true):color(true);});
 
   // Remove exiting nodes when the last child has finished transitioning.
@@ -715,7 +814,7 @@ function bar(d) {
         return Math.abs(y(d.value)-y(0));
       })
       .attr("width", barWidth)
-      .attr("y", sety());
+      .attr("y", sety(d));
 
 
 
@@ -730,6 +829,24 @@ function bar(d) {
 }
 
 // A stateful closure for stacking bars horizontally.
+
+function findYOffset(data,i){
+  var accIndex=i;
+  var status=data.type;
+  while(status!="acc"){
+    accIndex=accIndex-1;
+    status=data.parent.children[accIndex].type;
+  }
+
+  var ret=0;
+  for(var j=accIndex;j<i;j++){
+    ret+=data.parent.children[j].value;
+  }
+
+  return ret;
+
+}
+
 function stack(data,i) {
 
   var y0=0;
@@ -739,22 +856,35 @@ function stack(data,i) {
       y_offset=data.value>0?0:y(data.parent.children[i-1].value+data.value)-y(0); // if objects in data file have no 'type' attribute
       
       //the following shows the situation when onjects in data file have 'type' attribute
+     
       if(data.type!=null){
         if(data.type=="acc"){
-          y_offset=0;
+          y_offset=data.value>0?0:-y(-data.value)+y(0);
         }
         else if(data.type=="dec"){
-          y_offset=y(data.parent.children[i-1].value+data.value)-y(0);
+          if (data.parent.children[i-1].type=="acc") {
+            //firstCumulated.push(data.parent.children[i-1].value+data.value);
+            y_offset=y(data.parent.children[i-1].value+data.value)-y(0);
+          }
+          else{
+            var vv=findYOffset(data,i);
+            y_offset=y(vv+data.value)-y(0);
+            
+          }
         }
         else if(data.type=="inc"){
-          y_offset=y(data.parent.children[i-1].value)-y(0);
+          if (data.parent.children[i-1].type=="acc"){
+            //firstCumulated.push(data.parent.children[i-1].davalueta+data.value); 
+            y_offset=y(data.parent.children[i-1].value)-y(0);
+          }
+          else{
+            var vv=findYOffset(data,i);
+            y_offset=y(vv)-y(0);
+          }
         }
-
+        var aa=1;
       }
-
-    if(i==data.parent.children.length-1 ){
-      y_offset=data.value>0?0:-y(-data.value)+y(0);
-    }
+  
     //y_offset=data.value>0?0:y(data.parent.children[i-1].value+data.value)-y(0);
   }
 
@@ -778,41 +908,41 @@ function stack(data,i) {
     //y0 -=y(d.value);
     if(d.depth>1){
       var a=1;  
-    //alert(d.depth);
-    //alert(tx+"   "+d.value+"    "+y.range());
-    //alert(tmp);
     }
     return tx;
   };
 }
 
-var cumulated=[];
 
-function sety(){
+
+function sety(data){
+  if(data.depth==0) {firstCumulated=[];}
   cumulated=[];
   var index=0;
   return function(d,i){ 
         if(d.depth==1){
         if(i==0) cumulated.push(d.value);
-        //return d.value<0?(y(0)+margin.left+margin.top):0;}
-        if(i==d.parent.children.length-1){return d.value<0?(y(0)):y(d.value); }
-        
         if(d.type==null){
           return d.value<0?y(d.parent.children[i-1].value):y(d.value);
           }
         else{
               if(d.type=="acc"){
-                return y(d.value);
+                // firstCumulated.push(d.value);
+                return d.value<0?(y(0)):y(d.value);
               }
               else if(d.type=="dec"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value);
-                else {return y(cumulated[len]);}
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
+                  return y(cumulated[len]);}
               }
               else if(d.type=="inc"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value+d.value);
-                else {return y(cumulated[len]+d.value);}
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
+                  return y(cumulated[len]+d.value);}
               }
               else{
                 alert("data format error: type is wrong dude XD");
