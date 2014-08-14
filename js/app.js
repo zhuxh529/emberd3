@@ -70,7 +70,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
       
       dmin=dmin>0?0:dmin;
       y.domain([1.2,dmin/Math.abs(whole)]);
-
+      var cumulated=[];
       svg.select(".enter").selectAll("rect")
       .transition()
       .duration(duration)
@@ -81,11 +81,37 @@ App.WaterfallChartComponent = Ember.Component.extend({
         return Math.abs(y(d.value/whole)-y(0));
       })
       .attr("y", function(d,i){         
-        if(d.depth==1){
-        if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value/whole); }
-        return d.value<0?(y(d.parent.children[i-1].value/whole)):y(d.value/whole);}
+         if(d.depth==1){
+        if(i==0) cumulated.push(d.value);
+        if(d.type==null){
+          return d.value<0?y(d.parent.children[i-1].value/whole):y(d.value/whole);
+          }
         else{
-          return y(Math.abs(d.value/whole));
+              if(d.type=="acc"){
+                // firstCumulated.push(d.value);
+                return d.value<0?(y(0)):y(d.value/whole);
+              }
+              else if(d.type=="dec"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole);
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
+                  return y(cumulated[len]/whole);}
+              }
+              else if(d.type=="inc"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole+d.value/whole);
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
+                  return y(cumulated[len]/whole+d.value/whole);}
+              }
+              else{
+                alert("data format error: type is wrong dude XD");
+              }
+            }
+        }
+        else{
+          return y(Math.abs(d.value)/Math.abs(whole));
         }
       });
       var formatter = d3.format(".0%");
@@ -128,19 +154,51 @@ App.WaterfallChartComponent = Ember.Component.extend({
       dmin=dmin>0?0:dmin;
       y.domain([dmax*1.1,dmin]);
 
+      var cumulated=[];
       svg.select(".enter").selectAll("rect")
       .transition()
       .duration(duration)
       .attr("height", function(d,i) {
-       
-        if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)/whole): edge.push(d.value/whole); bars.push(d.value/whole);} 
-         //alert(d.value);
+
         return Math.abs(y(d.value/whole)-y(0));
       })
       .attr("y", function(d,i){         
+        // if(d.depth==1){
+        // if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value/whole); }
+        // return d.value<0?(y(d.parent.children[i-1].value/whole)):y(d.value/whole);}
+        // else{
+        //   return y(Math.abs(d.value)/Math.abs(whole));
+        // }
+
         if(d.depth==1){
-        if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value/whole); }
-        return d.value<0?(y(d.parent.children[i-1].value/whole)):y(d.value/whole);}
+        if(i==0) cumulated.push(d.value);
+        if(d.type==null){
+          return d.value<0?y(d.parent.children[i-1].value/whole):y(d.value/whole);
+          }
+        else{
+              if(d.type=="acc"){
+                // firstCumulated.push(d.value);
+                return d.value<0?(y(0)):y(d.value/whole);
+              }
+              else if(d.type=="dec"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole);
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
+                  return y(cumulated[len]/whole);}
+              }
+              else if(d.type=="inc"){
+                var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
+                if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole+d.value/whole);
+                else {
+                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
+                  return y(cumulated[len]/whole+d.value/whole);}
+              }
+              else{
+                alert("data format error: type is wrong dude XD");
+              }
+            }
+        }
         else{
           return y(Math.abs(d.value)/Math.abs(whole));
         }
