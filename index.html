@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WaterFall Charts</title>
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/style.css">
@@ -11,7 +12,6 @@
   <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-responsive.min.css" rel="stylesheet">
   <link rel="stylesheet" href="//code.jquery.com/ui/1.11.0/themes/smoothness/jquery-ui.css">
   <link href="external/google-code-prettify/prettify.css" rel="stylesheet">
-  <link href="http://netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css" rel="stylesheet">
   <link href="index.css" rel="stylesheet">
 
 
@@ -19,7 +19,6 @@
 
 </head>
 <style>
-
 #graph {
     display:inline-block;
   }
@@ -70,13 +69,41 @@ rect.background {
 }
 
 #test {
-  margin:10px 0px 40px 60px;
+  margin:10px 0px 0px 60px;
 }
 
-.buttons{
-  margin:50px 0px 0px 0px;
+.btn-group{
+   margin:80px 0px 0px 60px;
 }
 
+@media   (max-width: 450px) {
+    .buttons{
+      left:0%;
+    }
+
+    .btn-group .btn{
+    font-size: 9px;
+    }
+  }
+    
+
+@media  (min-device-width: 900px) {
+    .buttons{
+      left:10%;
+    }
+
+    .btn-group .btn{
+    font-size: 14px;
+    }
+
+  }
+    
+
+
+
+
+
+    
 
 
 </style>
@@ -88,21 +115,22 @@ rect.background {
 
   <script type="text/x-handlebars" data-template-name="application">
 
-    {{waterfall-chart  file="data.json"}}
+    {{waterfall-chart  file="data_1.json"}}
     {{waterfall-chart  file="data_2.json"}}
     {{waterfall-chart  file="data_3.json"}}
     {{waterfall-chart  file="data_4.json"}}
+    {{waterfall-chart  file="data_5.json"}}
    
   </script>
 
 
 <script type="text/x-handlebars" id="components/waterfall-chart" >
-<div class="bigall">
-<div class="buttons btn-group" style="left:170px;">
-  <button type="button" class="btn btn-default btn-success " {{action "goPercent"}}  style="font-size:16px">To Percent</button>
-  <button type="button" class="btn btn-default btn-success " {{action "goValue"}} style="font-size:16px">To Value</button>
-  <button type="button" class="btn btn-default btn-info " {{action "goif"}} style="font-size:16px">IF-Scenario</button>
-  <button type="button" class="btn btn-default btn-warning " {{action "goClean"}} style="font-size:16px">Clean</button>
+<div class="container" style="width:100%;">
+<div class="buttons btn-group " >
+  <button type="button" class="btn btn-default btn-success"  {{action "goPercent"}} >To Percent</button>
+  <button type="button" class="btn btn-default btn-success" {{action "goValue"}}>To Value</button>
+  <button type="button" class="btn btn-default btn-info"  {{action "goif"}}>IF-Scenario</button>
+  <button type="button" class="btn btn-default btn-warning"  {{action "goClean"}}>Clean</button>
 
 </div>
 
@@ -112,9 +140,9 @@ rect.background {
 
   </script>
   <script src="js/libs/jquery-1.10.2.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
   <script src="external/google-code-prettify/prettify.js"></script>
 
-  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
   <script src="//code.jquery.com/jquery-1.10.2.js"></script>
   <script src="//code.jquery.com/ui/1.11.0/jquery-ui.js"></script>
   <script src="js/libs/handlebars-1.1.2.js"></script>

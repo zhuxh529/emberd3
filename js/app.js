@@ -1,16 +1,35 @@
-App = Ember.Application.create();
+/*
+* $Revision$
+*
+* Copyright (c) 2014 by PROS, Inc. All Rights Reserved.
+* This software is the confidential and proprietary information of
+* PROS, Inc. ("Confidential Information").
+* You may not disclose such Confidential Information, and may only
+* use such Confidential Information in accordance with the terms of
+* the license agreement you entered into with PROS.
+*
+* If you encounter any problems please contact Xihao Zhu, 
+* with email zhuxh529@gmail.com
+*
+*/
+
+
+App = Ember.Application.create(); 
 
 /* water-fall global constants starts here*/
 
-var x_low=0;
-var edge=[0];
-var bars=[];
-var margin = {top: 40, right: 120, bottom: 15, left: 120},
-    width = 960 - margin.left - margin.right,
-    height = 700 - margin.top - margin.bottom;
-var duration = 750,
-    delay = 25;
-var barGap = 1.4;
+var y_low=0; // y's domain down limit initialize
+
+var windowWidth=window.innerWidth; 
+var windowHeight=window.innerHeight;
+
+var margin = {top: 0.05*windowHeight, right: 0.13*windowWidth, bottom:  0.03*windowHeight, left: 0.09*windowWidth},
+    width = 0.75*windowWidth - margin.left - margin.right,
+    height = 0.73*windowHeight - margin.top - margin.bottom;
+var duration = 750, 
+    delay = 25; // animation transition variables
+
+var barGap = 1.4; // general gap between 2 bars 
 var max, min;
 max=Number.MAX_VALUE;
 min=Number.MIN_VALUE;
@@ -23,13 +42,20 @@ min=Number.MIN_VALUE;
 
 
 App.WaterfallChartComponent = Ember.Component.extend({
+  /* component's own variables*/
   axis_mode:'value',
   barValues:[],
   y:d3.scale.linear().range([0,height]),
   depth:0,
   layer1Data:{},
   barWidth:0,
+
+  /* component's own functions*/
   actions:{
+
+    /* function goClean()
+    *clean all the effects on the waterfall charts
+    */
     goClean: function(){
       if(d3.selectAll(".newbar")[0].length!=0){
       d3.selectAll(".newbar")
@@ -42,13 +68,12 @@ App.WaterfallChartComponent = Ember.Component.extend({
     
     },
 
-    goTest: function(){
-      alert("hello Dude");
-    },
 
+    /* function goPercent()
+    *change the graph to percent view
+    */
     goPercent: function(){
-      var whole;
-      edge=[];
+      var whole; // the variable that scales the y values 
       if(this.get('axis_mode')=="percent") return;
       this.set('axis_mode', "percent");
 
@@ -61,48 +86,46 @@ App.WaterfallChartComponent = Ember.Component.extend({
       
       var dd=svg.select(".enter").selectAll("rect")[0][0].__data__;
       whole=(dd.depth==1)?svg.select(".enter").selectAll("rect")[0][0].__data__.parent.children[0].value:dd.parent.value;
+      
+      //get the min and max of y's domain
       svg.select(".enter").selectAll("rect").each(function(d){ 
-        //whole= (d.depth==1)?d.parent.children[0].value:d.parent.value;
         var len=d.parent.children.length;
         dmin=(d.depth==1)?d.parent.children[len-1].value:0;
 
       });
       
       dmin=dmin>0?0:dmin;
-      y.domain([1.2,dmin/Math.abs(whole)]);
+      y.domain([1.2,dmin/Math.abs(whole)]).nice(); // update y's domain
       var cumulated=[];
+
+      //update the existing bar values
       svg.select(".enter").selectAll("rect")
       .transition()
       .duration(duration)
       .attr("height", function(d,i) {
-       
-        if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)/whole): edge.push(d.value/whole); bars.push(d.value/whole);} 
-        //alert(d.value);
         return Math.abs(y(d.value/whole)-y(0));
       })
       .attr("y", function(d,i){         
          if(d.depth==1){
         if(i==0) cumulated.push(d.value);
         if(d.type==null){
+          if(i==d.parent.children.length-1) return d.value<0?(y(0)):y(d.value/whole);
           return d.value<0?y(d.parent.children[i-1].value/whole):y(d.value/whole);
           }
         else{
               if(d.type=="acc"){
-                // firstCumulated.push(d.value);
                 return d.value<0?(y(0)):y(d.value/whole);
               }
               else if(d.type=="dec"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
                   return y(cumulated[len]/whole);}
               }
               else if(d.type=="inc"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole+d.value/whole);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
                   return y(cumulated[len]/whole+d.value/whole);}
               }
               else{
@@ -119,16 +142,22 @@ App.WaterfallChartComponent = Ember.Component.extend({
         .scale(y)
         .orient("left")
         .tickFormat(formatter);
-    
+      
+      //update y-axis ticks
       svg.selectAll(".y.axis").transition()
       .duration(duration)
       .attr("transform", "translate( 0,0)")
       .call(yAxis);
 
     },
+
+
+    /* function goValue()
+    *change the graph from percent view to value view
+    *very similar to goPercent function
+    */
     goValue: function(){
       var whole;
-      edge=[];
       if(this.get('axis_mode')=="value") return;
       this.set('axis_mode', "value");
 
@@ -142,6 +171,8 @@ App.WaterfallChartComponent = Ember.Component.extend({
       this.set('y',y);
       var depth=0;
       whole=1;
+
+      //get the min and max of y's domain
       svg.select(".enter").selectAll("rect").each(function(d){ 
         depth=d.depth;
         var len=d.parent.children.length;
@@ -152,9 +183,12 @@ App.WaterfallChartComponent = Ember.Component.extend({
       
 
       dmin=dmin>0?0:dmin;
-      y.domain([dmax*1.1,dmin]);
+      y.domain([dmax*1.1,dmin]).nice();//update y's domain
 
       var cumulated=[];
+
+
+      //update the existing bar values
       svg.select(".enter").selectAll("rect")
       .transition()
       .duration(duration)
@@ -163,35 +197,27 @@ App.WaterfallChartComponent = Ember.Component.extend({
         return Math.abs(y(d.value/whole)-y(0));
       })
       .attr("y", function(d,i){         
-        // if(d.depth==1){
-        // if(d.name.indexOf(":last")>0){return d.value<0?y(0):y(d.value/whole); }
-        // return d.value<0?(y(d.parent.children[i-1].value/whole)):y(d.value/whole);}
-        // else{
-        //   return y(Math.abs(d.value)/Math.abs(whole));
-        // }
-
+       
         if(d.depth==1){
         if(i==0) cumulated.push(d.value);
         if(d.type==null){
+          if(i==d.parent.children.length-1) return d.value<0?(y(0)):y(d.value/whole);
           return d.value<0?y(d.parent.children[i-1].value/whole):y(d.value/whole);
           }
         else{
               if(d.type=="acc"){
-                // firstCumulated.push(d.value);
                 return d.value<0?(y(0)):y(d.value/whole);
               }
               else if(d.type=="dec"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
                   return y(cumulated[len]/whole);}
               }
               else if(d.type=="inc"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value/whole+d.value/whole);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
                   return y(cumulated[len]/whole+d.value/whole);}
               }
               else{
@@ -207,20 +233,36 @@ App.WaterfallChartComponent = Ember.Component.extend({
         .scale(y)
         .orient("left");
     
+
+      //update y-axis ticks
       svg.selectAll(".y.axis").transition()
       .duration(duration)
       .attr("transform", "translate( 0,0)")
       .call(yAxis);
     },
 
-     goif: function(){
-      if(this.get('depth')!=0) {alert("if senario only works for depth=0"); return;} 
+
+
+    /* function goif()
+    *this function performs If-scenario
+    * when 'If-scenario' butotn is clicked, an editable table 
+    * will show up. Users can change values of bars and then
+    * the graph will add up a new layer of bars with modified 
+    * values. And the waterfall chart itself will rescale y-axis
+    * to fit into both the old charts and the new layer. 
+    *
+    *a very hard function...
+    */
+    goif: function(){
+      if(this.get('axis_mode')=="percent") {alert("If-scenario only works for 'value' mode, press button 'To Value' dude XD");return;}
+      if(this.get('depth')!=0) {alert("If-scenario only works for depth=0, navigate to the first level dude XD"); return;} 
+      
+      //when hover on a bar, tip will appear in front of the bar. Here is the tip for new layer of bars
        var tip = d3.tip()
        .attr('class', 'd3-tip')
        .offset([-10, 0])
        .html(function(d) {
         return "<strong style='font-size: 14px;'>Name:</strong> <span style='color:red;font-size: 14px;'>" + d.name.split(":")[0]+ "</span><strong style='font-size: 14px;'>Value:</strong> <span style='color:red;font-size: 14px;'>" + d.value.toFixed(3)+ "</span> <strong style='font-size: 14px;'> Percent: </strong><span style='color:red;font-size: 14px;'><span style='color:red;font-size: 14px;'>" +d.percent.toFixed(2)+ "%</span> ";
-      
       });
       var comp=this;
       var existedCumulative=[];
@@ -237,6 +279,8 @@ App.WaterfallChartComponent = Ember.Component.extend({
       var test1=svg.select(".enter");
       var tableDatas=this.get('layer1Data');
 
+
+      //dynamically create editable table usibf javascript DOM
       var newdiv= document.createElement('div');
       newdiv.className="container hero-unit";
       var table = document.createElement("TABLE");
@@ -264,12 +308,14 @@ App.WaterfallChartComponent = Ember.Component.extend({
       for (var c = 0, m = table.rows[1].cells.length; c < m; c++) {
                 newbarValues.push( parseFloat(table.rows[1].cells[c].innerHTML));
             }
-      $('.table').editableTableWidget();
+      $('.table').editableTableWidget(); // draw the table
 
 
-      //table change triggered function, very important here~
+
+      //whenever table changes, it triggers this function, very important here~
       $('.table td').on('change', function(evt, newValue) {
-        var index=evt.currentTarget.cellIndex;
+        if( isNaN(parseFloat(newValue))) {alert("You should type in a valid number dude XD"); return;}
+        var index=evt.currentTarget.cellIndex; // the index the table is changed
        
         var diff=0;
         if(index==0) diff=parseFloat(newValue-newbarValues[index]);
@@ -279,7 +325,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
         cumulated=[];
         for(var i=index;i<table.rows[1].cells.length;i++){
           if(barData[i].type=="acc"){
-            newbarValues[i]=newbarValues[i]+diff;
+            newbarValues[i]=newbarValues[i]+diff; //update abd recalculate the bar values
           }
         }
         newbarValues[index]=newValue;
@@ -292,7 +338,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
           if(parseFloat(tableDatas[i].value)>ymax) ymax=parseFloat(tableDatas[i].value);
           if(tableDatas[i].value>0 && newbarValues[i]<0) ymin=newbarValues[i];
         }
-        var temp=newbarValues[newbarValues.length-1];
+        var temp=newbarValues[newbarValues.length-1]<tableDatas[tableDatas.length-1].value?newbarValues[newbarValues.length-1]:tableDatas[tableDatas.length-1].value;
         ymin=ymin<temp?ymin:temp;
         ymin=ymin<0?ymin:0;
         y.domain([ymax,ymin]).nice();
@@ -300,46 +346,40 @@ App.WaterfallChartComponent = Ember.Component.extend({
         var id = comp.$().attr('id');
         var svg = d3.select("#"+id);
 
+        //update existing bars to new domain 
         svg.select(".enter").selectAll("rect")
         .transition()
         .duration(duration)
         .attr("height", function(d,i) {
-       
-        if(d.depth==1){ d.value<0||i==1?edge.push((edge[i]+d.value)): edge.push(d.value); bars.push(d.value);} 
-        //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
       .attr("y", function(d,i){
 
         var firstCumulated=[];
         var data=d;
-         if(data.depth==0) {firstCumulated=[];}
+        if(data.depth==0) {firstCumulated=[];}
 
-
-
-  var index=0;
+        var index=0;
         if(d.depth==1){
         if(i==0) existedCumulative.push(d.value);
         if(d.type==null){
+          if(i==d.parent.children.length-1) return d.value<0?(y(0)):y(d.value);
           return d.value<0?y(d.parent.children[i-1].value):y(d.value);
           }
         else{
               if(d.type=="acc"){
-                // firstexistedCumulative.push(d.value);
                 return d.value<0?(y(0)):y(d.value);
               }
               else if(d.type=="dec"){
                 var len=existedCumulative.length-1; existedCumulative.push(existedCumulative[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value);
                 else {
-                  // firstexistedCumulative.push(firstexistedCumulative[firstexistedCumulative.length-1]+d.value);
                   return y(existedCumulative[len]);}
               }
               else if(d.type=="inc"){
                 var len=existedCumulative.length-1; existedCumulative.push(existedCumulative[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value+d.value);
                 else {
-                  // firstexistedCumulative.push(firstexistedCumulative[firstexistedCumulative.length-1]+d.value);
                   return y(existedCumulative[len]+d.value);}
               }
               else{
@@ -359,6 +399,7 @@ App.WaterfallChartComponent = Ember.Component.extend({
         .scale(y)
         .orient("left")
     
+      //update y-axis ticks
       svg.selectAll(".y.axis").transition()
       .duration(duration)
       .attr("transform", "translate( 0,0)")
@@ -366,8 +407,8 @@ App.WaterfallChartComponent = Ember.Component.extend({
 
 
 
-        //add a new layer of 'if-senario bars'
-          addBars(index, newValue);
+      //add a new layer of 'if-senario bars'
+          addBars();
       });
 
       var dia=$( "#"+this.$().attr('id')+" #"+divId ).dialog({
@@ -387,64 +428,54 @@ App.WaterfallChartComponent = Ember.Component.extend({
 
 
 
+        /* function addBars()
+        * this function is inside goif() function
+        * It is to add a new layer of changed bars
+        * to existing bars
+        *
+        */
+        function addBars(){
 
-        function addBars(index, newValue){
+          if(d3.selectAll(".newbar")[0].length!=0){
+          d3.selectAll(".newbar")
+          .remove();
+          }
 
-      if(d3.selectAll(".newbar")[0].length!=0){
-      d3.selectAll(".newbar")
-      .remove();
-      }
+            //hard to clone barData to new ones.. so created data, names, types each array to represent barData
+              //var newdata=jQuery.extend({}, barData);
 
-
-
-      //hard to clone barData to new ones..
-      //var newdata=jQuery.extend({}, barData);
-
-      var data=[];
-      var names=[];
-      var types=[];
-      barData.forEach(function(d){ names.push(d.name);types.push(d.type);
-      });
-      newbarValues.forEach(function(d){ data.push(parseFloat(d));});
-      var xx=0;
-
-
-      // barData[index].name=barData[index].name+"-new";
-
-      test1.selectAll("rect")
-      .data(data, function(d) {return d+ Math.random()*0.01;})
-      .enter()
-      .append("rect")
-      .attr("class", "newbar")
-      .transition()
-      .duration(duration)
-      .attr("fill-opacity",0.96)
-      .attr("fill", "#e6550d")
-      .attr("x", function(d,i){ return (barWidth*barGap)*(i+0.3);})
-      .attr("height", function(d,i) { 
-        // return x(d.value)<0?-x(d.value):x(d.value);
-        return Math.abs(y(d)-y(0));
-      })
-  .attr("width", 0.85*barWidth)
-  .attr("y", function(d,i){ 
-    //alert("hololl");
-        // if(names[i].indexOf(":last")>0){return d<0?y(0):y(d); }
+          var data=[];
+          var names=[];
+          var types=[];
+          barData.forEach(function(d){ names.push(d.name);types.push(d.type);
+          });
+          newbarValues.forEach(function(d){ data.push(parseFloat(d));});
+          var xx=0;
 
 
-        // if(i==data.length-1){return d<0?y(0):y(d); }
-        // var a=parseFloat(tableDatas[i].value);
-        // if(a>0 && d<0) return y(0); 
-        // return d<0?(y(data[i-1])):y(d);
-
-
-        var firstCumulated=[];
-        var data1=barData;
-
- 
-  var index=0; 
+          //draw new layer of bars
+          test1.selectAll("rect")
+          .data(data, function(d) {return d+ Math.random()*0.01;})
+          .enter()
+          .append("rect")
+          .attr("class", "newbar")
+          .transition()
+          .duration(duration)
+          .attr("fill-opacity",0.96)
+          .attr("fill", "#e6550d")
+          .attr("x", function(d,i){ return (barWidth*barGap)*(i+0.3);})
+          .attr("height", function(d,i) { 
+            return Math.abs(y(d)-y(0));
+          })
+          .attr("width", 0.85*barWidth)
+          .attr("y", function(d,i){ 
+            var firstCumulated=[];
+            var data1=barData;
+            var index=0; 
         if(data1[i].depth==1){
         if(i==0) cumulated.push(d);
         if(data1[i].type==null){
+          if(i==d.parent.children.length-1) return d.value<0?(y(0)):y(d.value);
           return d<0?y(data1[i-1].value):y(d);
           }
         else{
@@ -470,27 +501,28 @@ App.WaterfallChartComponent = Ember.Component.extend({
         }
       });
 
-var tipdata = {
-    name: "",
-    value:0,
-    percent : 0
-};  
+            var tipdata = {
+                name: "",
+                value:0,
+                percent : 0
+            };  
 
-  test1.selectAll(".newbar")
-  .on("mouseover", function(d,i) { 
-         d3.select(this).style("fill","orangered");
-         tipdata.name=names[i];
-         tipdata.value=d;
-         tipdata.percent=100*d/data[0];
 
-         tip.show(tipdata);
-      })
-      .on("mouseout", function(d,i) { 
-        d3.select(this).style("fill","#e6550d");
-        tip.hide();
+          //add tips to the bars in the new layer
+            test1.selectAll(".newbar")
+              .on("mouseover", function(d,i) { 
+              d3.select(this).style("fill","orangered");
+              tipdata.name=names[i];
+              tipdata.value=d;
+              tipdata.percent=100*d/data[0];
 
-      });
-      }
+              tip.show(tipdata);
+              })
+              .on("mouseout", function(d,i) { 
+              d3.select(this).style("fill","#e6550d");
+              tip.hide();
+              });
+              } 
 
 
 
@@ -500,7 +532,16 @@ var tipdata = {
      }
   },
 
-  didInsertElement: function(){
+
+
+
+/* function didInsertElement()
+* The default function that is executed when you add the component to index.html
+* It will draw the hierarchical bars in the file passed back from index.html
+* The last function of the component, but has alot of sub-functions.
+*/
+didInsertElement: function(){
+
 var cumulated=[];
 var firstCumulated=[];
 var barWidth = 75;
@@ -555,6 +596,7 @@ var width_scale;
 var comp=this;
 
 
+//d3 svg initialization
 var svg = d3.select("#"+id).append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -566,6 +608,7 @@ svg.append("rect")
     .attr("width", width)
     .attr("height", height)
     .on("click", up);
+
 
 // svg.append("text")
 //         .attr("x", (width / 2))             
@@ -582,33 +625,31 @@ svg.append("g")
     .attr("class", "y axis")
     .style({ 'stroke-width': '1.5px'})
   .append("line")
-    .attr("y1", "100%");
+    .attr("y1", height);
 
  if(this.get('axis_mode')=="percent") {
-  //alert(this.get('axis_mode'));
   var formatter = d3.format(".0%");
- 
-  //yAxis.tickFormat(formatter);
- }
+  }
 
 
   
 
-
+//parse in the file and execute down function
 d3.json(datafile, function(error, root) {
   partition.sort(null).nodes(root);
-  
-  
-  var l=traverseNode(root);
+  var l=traverseNode(root); /* traverse all the bars in the file 
+  * so that the barwidth below can be dynamically determined by
+  * bars in file
+  */ 
   barWidth=width/(barGap*1.06*l);
   barWidth=barWidth>100?100:barWidth;
   
-  x_low=0;
+  y_low=0;
   
-    x_low=root.children[root.children.length-1].value;
-    x_low=x_low<0?x_low:0;
+    y_low=root.children[root.children.length-1].value;
+    y_low=y_low<0?y_low:0;
 
-  y.domain([ root.value,x_low]).nice();
+  y.domain([ root.value,y_low]).nice();
   comp.set('barValues', root.children);
   comp.set('barWidth', barWidth);
   comp.set('y', y);
@@ -618,19 +659,26 @@ d3.json(datafile, function(error, root) {
 });
 
 
+
+/* traverseNode function
+* traverse all the bars in the file 
+* so that the barwidth can be dynamically determined by
+* bars in file
+*
+* @param :node, bar node in file 
+* @return :max children.length in all hierarchy of the input file
+*/
 function traverseNode(node){
-  //to get the max children.length
-  if(!node.children) return 1;
+  if(!node.children) return 1; // base case
   var maxLength=0;
  
   for(var nodes=0;nodes< node.children.length;nodes++){
     if(datafile=="data_2.json") {
       var aa=1;
     }
-    var nn=traverseNode(node.children[nodes]);
+    var nn=traverseNode(node.children[nodes]); //recursively call itself
     maxLength=nn>maxLength?nn:maxLength;
   }
-
   var l=node.children.length
   return l>maxLength?l:maxLength;
 
@@ -638,6 +686,14 @@ function traverseNode(node){
 
 
 
+
+/* down function
+* when user clicks an expendable bar, down function
+* is executed.
+*
+* @param :d, data
+* @param :i, index
+*/
 function down(d, i) {
   if (!d.children || this.__transition__) return;
   comp.set('depth',d.depth);
@@ -671,17 +727,17 @@ function down(d, i) {
   .on("mouseover", function(d) { d3.select(this).style("fill","orangered"); tip.show(d); })
   .on("mouseout", function(d) { d3.select(this).style("fill", function(d){return (d.depth==1 && d.value<0)?cost_color(true):color(!!d.children);}); tip.hide(d);});
 
-  // Update the x-scale domain.
-  x_low=0;
+  // Update the y-scale domain.
+  y_low=0;
   if(d.depth==0){
-    x_low=d.children[d.children.length-1].value;
-    x_low=x_low<0?x_low:0;
+    y_low=d.children[d.children.length-1].value;
+    y_low=y_low<0?y_low:0;
     
   }
 
-  y.domain([ d3.max(d.children, function(d) { return d.value<0?-d.value:d.value; }),x_low]).nice();
+  y.domain([ d3.max(d.children, function(d) { return d.value<0?-d.value:d.value; }),y_low]).nice();
   comp.set('y', y);
-  // Update the x-axis.
+  // Update the y-axis.
   svg.selectAll(".y.axis").transition()
       .duration(duration)
       .attr("transform", "translate(0,0)")
@@ -707,9 +763,6 @@ function down(d, i) {
   // Transition entering rects to the new x-scale.
   enterTransition.select("rect")
       .attr("height", function(d,i) { 
-        // return x(d.value)<0?-x(d.value):x(d.value);
-        if(d.depth==1){ d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value); bars.push(d.value);} 
-         //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
       .attr("y", sety(d))
@@ -724,9 +777,6 @@ function down(d, i) {
   // Transition exiting bars to the new x-scale.
   exitTransition.selectAll("rect")
       .attr("height", function(d,i) { 
-        // return x(d.value)<0?-x(d.value):x(d.value);
-        if(d.depth==1){ d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value); bars.push(d.value);} 
-         //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
       .attr("y", sety(d));
@@ -740,6 +790,13 @@ function down(d, i) {
   d.index = i;
 }
 
+
+/* up function
+* when user clicks an white space of graph, up function
+* is executed.
+*
+* @param :d, data
+*/
 function up(d) {
 
   if (!d.parent || this.__transition__) return;
@@ -769,15 +826,14 @@ function up(d) {
       .style("fill-opacity", 1e-6);
 
   // Update the x-scale domain.
-  x_low=0;
+  y_low=0;
   if(d.depth==1){
-    x_low=d.parent.children[d.parent.children.length-1].value;
-    x_low=x_low<0?x_low:0;
+    y_low=d.parent.children[d.parent.children.length-1].value;
+    y_low=y_low<0?y_low:0;
     
   }
-  //if(d.)
 
- y.domain([ d3.max(d.parent.children, function(d) { return d.value<0?-d.value:d.value;}),x_low]).nice();
+ y.domain([ d3.max(d.parent.children, function(d) { return d.value<0?-d.value:d.value;}),y_low]).nice();
 
   // Update the x-axis.
   svg.selectAll(".y.axis").transition()
@@ -799,9 +855,6 @@ function up(d) {
   enterTransition.select("rect")
         .attr("y", sety(d))
      .attr("height", function(d,i) { 
-        // return x(d.value)<0?-x(d.value):x(d.value);
-        if(d.depth==1){ d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value); bars.push(d.value);} 
-         //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
       .each("end", function(p) { if (p === d) d3.select(this).style("fill-opacity", null); });
@@ -819,9 +872,6 @@ function up(d) {
   // Transition exiting rects to the new scale and fade to parent color.
   exitTransition.select("rect")
       .attr("height", function(d,i) { 
-        // return x(d.value)<0?-x(d.value):x(d.value);
-        if(d.depth==1){ d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value); bars.push(d.value);} 
-         //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
       .attr("y", sety(d) )
@@ -839,10 +889,16 @@ function up(d) {
       .duration(end);
 }
 
-// Creates a set of bars for the given data node, at the specified indey.
+
+/* bar function
+* Creates a set of bars for the given data node, 
+* at the specified index.
+*
+* @param :d, data
+*/
 function bar(d) {
-  edge=[];
  
+  
   var bar = svg.insert("g", ".x.axis")
       .attr("class", "enter")
       .attr("transform", "translate(5,0)")
@@ -852,38 +908,29 @@ function bar(d) {
       .style("cursor", function(d) { return !d.children ? null : "pointer"; })
       .on("click", down);
 
+  //append text to bars
   bar.append("text")
-      .attr("y", height+10)
-      .attr("x", 4*barWidth/5)
-      .attr("dy", ".35em")
+      .attr("dy", height+10)
+      .attr("dx", barWidth)
+      //.attr("dy", ".35em")
       .style("text-anchor", "end")
-      .text(function(d) { return d.name.split(":")[0]; });
+      .text(function(d) { return d.name.split(":")[0]; })
+      .attr("transform", function(d) {
+                return "rotate(0)" ;
+                });
 
   bar.append("rect")
        .on("mouseover", function(d) { d3.select(this).style("fill","orangered"); tip.show(d) ;})
        .on("mouseout", function(d) { d3.select(this).style("fill", function(d){return (d.depth==1 && d.value<0)?cost_color(true):color(!!d.children);}); tip.hide(d);})
       .attr("height", function(d,i) { 
-        // return x(d.value)<0?-x(d.value):x(d.value);
-        if(d.depth==1){ d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value); bars.push(d.value);} 
-         //alert(d.value);
         return Math.abs(y(d.value)-y(0));
       })
       .attr("width", barWidth)
       .attr("y", sety(d));
 
 
-
-
-  // bar.append("rect")
-  //     .attr("width", function(d,i) { d.value<0||i==1?edge.push(edge[i]+d.value): edge.push(d.value);
-  //      return x(d.value)<0?-x(d.value):x(d.value);})
-  //     .attr("height", barWidth)
-  //     .attr("x", function(d,i){ alert(edge[i]); return d.value<0?x(5.3):0;} );
-
   return bar;
 }
-
-// A stateful closure for stacking bars horizontally.
 
 function findYOffset(data,i){
   var accIndex=i;
@@ -902,6 +949,7 @@ function findYOffset(data,i){
 
 }
 
+//animation stack effects for hierarchical open and close
 function stack(data,i) {
 
   var y0=0;
@@ -909,8 +957,7 @@ function stack(data,i) {
   var y_offset=0;
   if(data.parent && data.depth==1) {
       y_offset=data.value>0?0:y(data.parent.children[i-1].value+data.value)-y(0); // if objects in data file have no 'type' attribute
-      
-      //the following shows the situation when onjects in data file have 'type' attribute
+      if(i==data.parent.children.length-1) y_offset= data.value>0?0:-y(-data.value)+y(0);
      
       if(data.type!=null){
         if(data.type=="acc"){
@@ -918,7 +965,6 @@ function stack(data,i) {
         }
         else if(data.type=="dec"){
           if (data.parent.children[i-1].type=="acc") {
-            //firstCumulated.push(data.parent.children[i-1].value+data.value);
             y_offset=y(data.parent.children[i-1].value+data.value)-y(0);
           }
           else{
@@ -929,7 +975,6 @@ function stack(data,i) {
         }
         else if(data.type=="inc"){
           if (data.parent.children[i-1].type=="acc"){
-            //firstCumulated.push(data.parent.children[i-1].davalueta+data.value); 
             y_offset=y(data.parent.children[i-1].value)-y(0);
           }
           else{
@@ -940,7 +985,6 @@ function stack(data,i) {
         var aa=1;
       }
   
-    //y_offset=data.value>0?0:y(data.parent.children[i-1].value+data.value)-y(0);
   }
 
   if(data.depth>1){
@@ -960,7 +1004,6 @@ function stack(data,i) {
     var tx = "translate(" +barWidth * i * barGap + "," + y0  + ")";
     tmp=tmp+y(uplimit)-y(downlimit);
     uplimit=downlimit;
-    //y0 -=y(d.value);
     if(d.depth>1){
       var a=1;  
     }
@@ -978,25 +1021,23 @@ function sety(data){
         if(d.depth==1){
         if(i==0) cumulated.push(d.value);
         if(d.type==null){
+          if(i==d.parent.children.length-1) return d.value<0?(y(0)):y(d.value);
           return d.value<0?y(d.parent.children[i-1].value):y(d.value);
           }
         else{
               if(d.type=="acc"){
-                // firstCumulated.push(d.value);
                 return d.value<0?(y(0)):y(d.value);
               }
               else if(d.type=="dec"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
                   return y(cumulated[len]);}
               }
               else if(d.type=="inc"){
                 var len=cumulated.length-1; cumulated.push(cumulated[len]+d.value);
                 if(d.parent.children[i-1].type=="acc" ) return y(d.parent.children[i-1].value+d.value);
                 else {
-                  // firstCumulated.push(firstCumulated[firstCumulated.length-1]+d.value);
                   return y(cumulated[len]+d.value);}
               }
               else{

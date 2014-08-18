@@ -2,7 +2,7 @@
  "name": "flare",
  "children": [
   {
-   "name": "List Price",
+   "name": "List Price","type": "acc",
    "children": [
     {
      "name": "cluster",
@@ -27,7 +27,7 @@
    ]
   },
   {
-   "name": "stand. Disc. & Promot.",
+   "name": "stand. Disc. & Promot.","type": "dec",
    "children": [
     {"name": "Easing", "size": -0.3},
     {"name": "FunctionSequence", "size": -0.2},
@@ -43,7 +43,7 @@
    ]
   },
   {
-   "name": "Invoice",
+   "name": "Invoice","type": "acc",
    "children": [
     {
      "name": "converters",
@@ -57,27 +57,27 @@
    ]
   },
   {
-   "name": "Off Invoice",
+   "name": "Off Invoice","type": "dec",
    "children": [
     {"name": "DirtySprite", "size": -0.4},
     {"name": "TextSprite", "size": -0.9}
    ]
   },
   {
-   "name": "Pocket Price",
+   "name": "Pocket Price","type": "acc",
    "children": [
     {"name": "FlareVis", "size": 4.01}
    ]
   },
   {
-   "name": "Producion Cost",
+   "name": "Producion Cost","type": "dec",
    "children": [
     {"name": "DragForce", "size": -2.34},
     {"name": "SpringForce", "size": -2.3}
    ]
   },
   {
-   "name": "Pocket Margin :last",
+   "name": "Pocket Margin","type": "acc",
    "children": [
     {"name": "IScaleMap", "size": -0.12},
     {"name": "Scale", "size": -0.21},
